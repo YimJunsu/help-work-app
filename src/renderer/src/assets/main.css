@@ -1,0 +1,6 @@
+/* src/renderer/src/index.css 또는 main.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 여기에 사용자 정의 CSS를 추가할 수 있습니다. */
