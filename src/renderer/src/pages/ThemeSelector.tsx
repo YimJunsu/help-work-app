@@ -1,5 +1,4 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
-import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { tweakCNThemes, applyTheme, applyShadcnTheme, type Theme } from '../lib/theme'
@@ -14,18 +13,19 @@ interface ThemeSelectorProps {
 
 export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange }: ThemeSelectorProps) {
   const handleThemeSelect = (theme: Theme) => {
-    console.log('Applying theme:', theme.name)
     applyTheme(theme)
+    localStorage.setItem('selected-theme', theme.name) // ✅ 저장
     onThemeChange(theme.name)
     onOpenChange(false)
   }
 
   const handleShadcnSelect = () => {
-    console.log('Applying shadcn theme')
     applyShadcnTheme()
+    localStorage.setItem('selected-theme', 'shadcn') // ✅ 저장
     onThemeChange('shadcn')
     onOpenChange(false)
   }
+
 
 
   return (
@@ -33,11 +33,11 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
       {/* ✅ 수정 1: 스크롤바 깨짐 방지를 위해 pr-2 (오른쪽 패딩) 추가.
         ✅ 수정 2: radius를 rounded-xl로 적용.
       */}
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto pr-2 rounded-xl bg-background/95 backdrop-blur-md border-2 shadow-2xl">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto pr-4 rounded-xl bg-background/95 backdrop-blur-md border-2 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <Palette className="w-6 h-6 text-primary" />
-            테마 선택
+            커스텀 테마 선택
           </DialogTitle>
           <DialogDescription>
             나만의 색상 테마를 선택하세요. 기본 테마 또는 개성있는 다양한 테마 중에서 선택할 수 있어요!
@@ -170,14 +170,6 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
               ))}
             </div>
           </div>
-        </div>
-
-        <div className="flex justify-end pt-4 border-t">
-          {/* ✅ 수정 3: 닫기 버튼을 variant="ghost"로 변경하여 테두리 제거 및 자연스러운 스타일 적용
-          */}
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            X
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

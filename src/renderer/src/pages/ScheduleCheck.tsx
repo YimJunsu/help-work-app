@@ -2,23 +2,20 @@ import { useState, useEffect } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Checkbox } from '../components/ui/checkbox'
-import { Input } from '../components/ui/input'
 import { Badge } from '../components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Calendar } from '../components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover'
-import { Plus, Trash2, Calendar as CalendarIcon, List, Aperture, Heart, GraduationCap, CheckCheck } from 'lucide-react'
+import { Plus, Trash2, Calendar as CalendarIcon, List, CodeXml, Send, BadgeCheck, CheckCheck } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert'
+import { ScheduleAdd } from './ScheduleAdd'
 
 interface Schedule {
-  id: string
+  id: number
   text: string
-  completed: boolean
+  completed: number | boolean
   category?: string
-  dueDate?: Date
+  dueDate?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface ScheduleProps {
@@ -26,76 +23,56 @@ interface ScheduleProps {
 }
 
 export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
-  // Load todos from localStorage on initial mount
-  const [todos, setSchedules] = useState<Schedule[]>(() => {
-    const savedSchedules = localStorage.getItem('todos')
-    if (savedSchedules) {
-      const parsedSchedules = JSON.parse(savedSchedules)
-      // Convert date strings back to Date objects
-      return parsedSchedules.map((todo: any) => ({
-        ...todo,
-        dueDate: todo.dueDate ? new Date(todo.dueDate) : undefined
-      }))
-    }
-    // Default test data
-    return [
-      { id: '1', text: '테스트 데이터 1', completed: false, category: 'work' },
-      { id: '2', text: '테스트 데이터 2', completed: true, category: 'health' },
-      { id: '3', text: '테스트 데이터 3', completed: false, category: 'study' },
-      { id: '4', text: '테스트 데이터 4', completed: false, category: 'study' },
-      { id: '5', text: '테스트 데이터 5', completed: false, category: 'study' }
-    ]
-  })
-  const [newSchedule, setNewSchedule] = useState('')
+  const [todos, setSchedules] = useState<Schedule[]>([])
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const [deletingSchedules, setDeletingSchedules] = useState<Set<string>>(new Set())
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [deletingSchedules, setDeletingSchedules] = useState<Set<number>>(new Set())
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [newScheduleCategory, setNewScheduleCategory] = useState<string | undefined>(undefined)
-  const [alertMessage, setAlertMessage] = useState<string | null>(null)
 
-  // Save todos to localStorage whenever they change
+  // Load schedules from database on mount
   useEffect(() => {
-    localStorage.setItem('todos', JSON.stringify(todos))
-  }, [todos])
+    loadSchedules()
+  }, [])
+
+  const loadSchedules = async () => {
+    if (window.electron) {
+      const schedules = await window.electron.ipcRenderer.invoke('schedules:getAll')
+      setSchedules(schedules)
+    }
+  }
 
   useEffect(() => {
     onDialogChange?.(showAddDialog)
   }, [showAddDialog, onDialogChange])
 
-  const addSchedule = () => {
-    if (!newSchedule.trim()) {
-      setAlertMessage("일정을 입력하세요.")
-      return
-    }
-
-    setSchedules([
-      ...todos,
-      {
-        id: Date.now().toString(),
-        text: newSchedule.trim(),
+  const addSchedule = async (schedule: { text: string; category?: string; dueDate?: Date }) => {
+    if (window.electron) {
+      await window.electron.ipcRenderer.invoke('schedules:create', {
+        text: schedule.text,
         completed: false,
-        category: newScheduleCategory,
-        dueDate: selectedDate
-      }
-    ])
-    setNewSchedule('')
-    setSelectedDate(undefined)
-    setNewScheduleCategory(undefined)
-    setShowAddDialog(false)
-    setAlertMessage(null)
+        category: schedule.category,
+        dueDate: schedule.dueDate?.toISOString()
+      })
+      await loadSchedules()
+    }
   }
 
-  const toggleSchedule = (id: string) => {
-    setSchedules(todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ))
+  const toggleSchedule = async (id: number) => {
+    const todo = todos.find(t => t.id === id)
+    if (todo && window.electron) {
+      await window.electron.ipcRenderer.invoke('schedules:update', id, {
+        completed: !todo.completed
+      })
+      await loadSchedules()
+    }
   }
 
-  const deleteSchedule = (id: string) => {
+  const deleteSchedule = (id: number) => {
     setDeletingSchedules(prev => new Set([...prev, id]))
-    setTimeout(() => {
-      setSchedules(todos => todos.filter(todo => todo.id !== id))
+    setTimeout(async () => {
+      if (window.electron) {
+        await window.electron.ipcRenderer.invoke('schedules:delete', id)
+        await loadSchedules()
+      }
       setDeletingSchedules(prev => {
         const newSet = new Set(prev)
         newSet.delete(id)
@@ -107,50 +84,53 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
   const clearCompletedSchedules = () => {
     const completedIds = todos.filter(todo => todo.completed).map(todo => todo.id)
     setDeletingSchedules(new Set(completedIds))
-    setTimeout(() => {
-      setSchedules(todos => todos.filter(todo => !todo.completed))
+    setTimeout(async () => {
+      if (window.electron) {
+        await window.electron.ipcRenderer.invoke('schedules:deleteCompleted')
+        await loadSchedules()
+      }
       setDeletingSchedules(new Set())
     }, 300)
   }
 
   const getCategoryColor = (category?: string) => {
     switch (category) {
-      case 'work': return 'bg-primary/10 text-primary'
-      case 'health': return 'bg-accent/10 text-accent-foreground'
-      case 'study': return 'bg-secondary text-secondary-foreground'
-      default: return 'bg-muted text-muted-foreground'
+      case 'develop': return 'bg-gray-100 text-primary'
+      case 'reflect': return 'bg-gray-100 text-accent-foreground'
+      case 'inspection': return 'bg-gray-100 text-secondary-foreground'
+      default: return 'bg-gray-100 text-muted-foreground'
     }
   }
 
   const getCategoryLabel = (category?: string) => {
     switch (category) {
-      case 'work': return '업무'
-      case 'health': return '건강'
-      case 'study': return '학습'
+      case 'develop': return '개발/수정'
+      case 'reflect': return '운영 반영'
+      case 'inspection': return '서비스 점검'
       default: return category
     }
   }
 
   const categories = [
     { id: null, name: '전체', icon: List, count: todos.length },
-    { id: 'work', name: '업무', icon: Aperture, count: todos.filter(t => t.category === 'work').length },
-    { id: 'health', name: '건강', icon: Heart, count: todos.filter(t => t.category === 'health').length },
-    { id: 'study', name: '학습', icon: GraduationCap, count: todos.filter(t => t.category === 'study').length }
+    { id: 'develop', name: '개발/수정', icon: CodeXml, count: todos.filter(t => t.category === 'develop').length },
+    { id: 'reflect', name: '운영 반영', icon: Send, count: todos.filter(t => t.category === 'reflect').length },
+    { id: 'inspection', name: '서비스 점검', icon: BadgeCheck, count: todos.filter(t => t.category === 'inspection').length }
   ]
 
   const getCategoryBadgeColor = (categoryId: string | null, isSelected: boolean) => {
     if (isSelected) {
       switch (categoryId) {
-        case 'work': return 'bg-primary text-primary-foreground hover:bg-primary/90'
-        case 'health': return 'bg-accent text-accent-foreground hover:bg-accent/90'
-        case 'study': return 'bg-secondary text-secondary-foreground hover:bg-secondary/90'
+        case 'develop': return 'bg-primary text-primary-foreground hover:bg-primary/90'
+        case 'reflect': return 'bg-accent text-accent-foreground hover:bg-accent/90'
+        case 'inspection': return 'bg-secondary text-secondary-foreground hover:bg-secondary/90'
         default: return 'bg-foreground text-background hover:bg-foreground/90'
       }
     } else {
       switch (categoryId) {
-        case 'work': return 'bg-primary/10 text-primary hover:bg-primary/20'
-        case 'health': return 'bg-accent/10 text-accent-foreground hover:bg-accent/20'
-        case 'study': return 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+        case 'develop': return 'bg-primary/10 text-primary hover:bg-primary/20'
+        case 'reflect': return 'bg-accent/10 text-accent-foreground hover:bg-accent/20'
+        case 'inspection': return 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
         default: return 'bg-muted text-muted-foreground hover:bg-muted/80'
       }
     }
@@ -167,9 +147,11 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
     <div className="w-full h-full flex flex-col">
       <Card className="flex-1 border-0 bg-card">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-bold text-card-foreground">Work Schedule Check</CardTitle>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between min-h-[60px]">
+            <div className="flex flex-col justify-center">
+              <CardTitle className="text-2xl font-bold text-card-foreground leading-tight">Work Schedule Check</CardTitle>
+            </div>
+            <div className="flex items-center gap-2 h-full">
               <Badge variant="secondary" className="text-sm font-medium">
                 {completedCount}/{totalCount} 완료
               </Badge>
@@ -245,7 +227,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
                         {todo.dueDate && (
                           <Badge variant="outline" className="text-xs bg-accent/10 text-accent-foreground border-border">
                             <CalendarIcon className="w-3 h-3 mr-1" />
-                            {format(todo.dueDate, "MM/dd", { locale: ko })}
+                            {format(new Date(todo.dueDate), "MM/dd", { locale: ko })}
                           </Badge>
                         )}
                       </div>
@@ -266,95 +248,20 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
 
           {filteredSchedules.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              <p className="text-lg font-medium">{selectedCategory ? '해당 카테고리에 할 일이 없습니다' : '할 일이 없습니다'}</p>
-              <p className="text-sm">새로운 할 일을 추가해보세요</p>
+              <List className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p className="text-lg font-medium">{selectedCategory ? '해당 카테고리에 일정이 없습니다' : '일정이 없습니다'}</p>
+              <p className="text-sm">새로운 일정을 추가해보세요</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md bg-background/95 backdrop-blur-md border-2 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Add Schedule</DialogTitle>
-            <DialogDescription>새로운 일정을 추가하세요.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-4">
-            {alertMessage && (
-              <Alert variant="destructive">
-                <AlertTitle>오류</AlertTitle>
-                <AlertDescription>{alertMessage}</AlertDescription>
-              </Alert>
-            )}
-
-            <Input
-              placeholder="Enter a new schedule"
-              value={newSchedule}
-              onChange={(e) => {
-                setNewSchedule(e.target.value)
-                setAlertMessage(null)
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && addSchedule()}
-              className="border-border focus:border-ring"
-              autoFocus
-            />
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category (선택사항)</label>
-              <Select value={newScheduleCategory} onValueChange={setNewScheduleCategory}>
-                <SelectTrigger className="border-border focus:border-ring">
-                  <SelectValue placeholder="Please choose Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="work">업무</SelectItem>
-                  <SelectItem value="health">건강</SelectItem>
-                  <SelectItem value="study">학습</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">DeadLine (선택사항)</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal border-border focus:border-ring">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "yyyy년 MM월 dd일", { locale: ko }) : <span>날짜를 선택하세요</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                    locale={ko}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowAddDialog(false)
-                  setNewSchedule('')
-                  setSelectedDate(undefined)
-                  setNewScheduleCategory(undefined)
-                  setAlertMessage(null)
-                }}
-              >
-                취소
-              </Button>
-              <Button onClick={addSchedule} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                추가
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* 일정추가 다이얼로그 */}
+      <ScheduleAdd
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onAddSchedule={addSchedule}
+      />
     </div>
   )
 }
