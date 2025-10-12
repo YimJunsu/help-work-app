@@ -210,7 +210,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <Checkbox
-                      checked={todo.completed}
+                      checked={Boolean(todo.completed)}
                       onCheckedChange={() => toggleSchedule(todo.id)}
                       className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
