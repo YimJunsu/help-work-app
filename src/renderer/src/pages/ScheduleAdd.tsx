@@ -106,7 +106,6 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule }: ScheduleAddPr
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
-                  initialFocus
                   locale={ko}
                 />
               </PopoverContent>

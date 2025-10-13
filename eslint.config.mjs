@@ -5,11 +5,13 @@ import eslintPluginReact from 'eslint-plugin-react'
 import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
 import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 
-export default defineConfig(
-  { ignores: ['**/node_modules', '**/dist', '**/out'] },
-  tseslint.configs.recommended,
-  eslintPluginReact.configs.flat.recommended,
-  eslintPluginReact.configs.flat['jsx-runtime'],
+export default defineConfig([
+  {
+    ignores: ['**/node_modules', '**/dist', '**/out']
+  },
+  ...tseslint.configs.recommended,
+  ...eslintPluginReact.configs.flat.recommended,
+  ...eslintPluginReact.configs.flat['jsx-runtime'],
   {
     settings: {
       react: {
@@ -25,8 +27,9 @@ export default defineConfig(
     },
     rules: {
       ...eslintPluginReactHooks.configs.recommended.rules,
-      ...eslintPluginReactRefresh.configs.vite.rules
+      ...eslintPluginReactRefresh.configs.vite.rules,
+      '@typescript-eslint/explicit-function-return-type': 'off'
     }
   },
-  eslintConfigPrettier
-)
+  ...eslintConfigPrettier
+])
