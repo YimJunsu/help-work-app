@@ -1,3 +1,5 @@
+릴리즈 반영 전 npm run build 와 electron-builder --win 하기
+
 # 업데이트 기능 테스트 가이드
 
 ## 개요

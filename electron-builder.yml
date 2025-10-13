@@ -1,7 +1,7 @@
 appId: com.yimjunsu.help-work-app
 productName: Help Work App
 directories:
-  buildResources: build
+  buildResources: resources
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -11,10 +11,14 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+
+icon: resources/icon.png
+
 win:
   executableName: Help Work App
   sign: false
   verifyUpdateCodeSignature: false
+  icon: resources/icon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -37,6 +41,7 @@ linux:
     - deb
   maintainer: electronjs.org
   category: Utility
+  icon: resources/icon.png
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
