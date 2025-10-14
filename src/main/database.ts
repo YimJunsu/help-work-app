@@ -10,11 +10,13 @@ export interface Schedule {
   completed: number // SQLite uses INTEGER for boolean (0 = false, 1 = true)
   category?: string
   dueDate?: string // Store as ISO string
+  clientName?: string
+  webData?: boolean // 웹데이터 유무
   createdAt: string
   updatedAt: string
 }
 
-export function initDatabase() {
+export function initDatabase(): any {
   const userDataPath = app.getPath('userData')
   const dbPath = path.join(userDataPath, 'schedules.db')
 
@@ -28,10 +30,26 @@ export function initDatabase() {
       completed INTEGER DEFAULT 0,
       category TEXT,
       dueDate TEXT,
+      clientName TEXT,
+      webData INTEGER DEFAULT 0,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )
   `)
+
+  // Add clientName column if it doesn't exist (for existing databases)
+  try {
+    db.exec(`ALTER TABLE schedules ADD COLUMN clientName TEXT`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  // Add webData column if it doesn't exist (for existing databases)
+  try {
+    db.exec(`ALTER TABLE schedules ADD COLUMN webData INTEGER DEFAULT 0`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
 
   console.log('Database initialized at:', dbPath)
   return db
@@ -55,13 +73,27 @@ export function closeDatabase() {
 export function getAllSchedules(): Schedule[] {
   const db = getDatabase()
   const stmt = db.prepare('SELECT * FROM schedules ORDER BY createdAt DESC')
-  return stmt.all() as Schedule[]
+  const schedules = stmt.all() as any[]
+
+  // Convert INTEGER webData to boolean
+  return schedules.map(schedule => ({
+    ...schedule,
+    webData: schedule.webData === 1
+  })) as Schedule[]
 }
 
 export function getScheduleById(id: number): Schedule | undefined {
   const db = getDatabase()
   const stmt = db.prepare('SELECT * FROM schedules WHERE id = ?')
-  return stmt.get(id) as Schedule | undefined
+  const schedule = stmt.get(id) as any
+
+  if (!schedule) return undefined
+
+  // Convert INTEGER webData to boolean
+  return {
+    ...schedule,
+    webData: schedule.webData === 1
+  } as Schedule
 }
 
 export function createSchedule(schedule: {
@@ -69,13 +101,15 @@ export function createSchedule(schedule: {
   completed?: boolean
   category?: string
   dueDate?: Date
+  clientName?: string
+  webData?: boolean
 }): Schedule {
   const db = getDatabase()
   const now = new Date().toISOString()
 
   const stmt = db.prepare(`
-    INSERT INTO schedules (text, completed, category, dueDate, createdAt, updatedAt)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO schedules (text, completed, category, dueDate, clientName, webData, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const result = stmt.run(
@@ -83,6 +117,8 @@ export function createSchedule(schedule: {
     schedule.completed ? 1 : 0,
     schedule.category || null,
     schedule.dueDate ? schedule.dueDate.toISOString() : null,
+    schedule.clientName || null,
+    schedule.webData ? 1 : 0,
     now,
     now
   )

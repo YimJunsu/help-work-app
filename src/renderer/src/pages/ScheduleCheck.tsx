@@ -14,6 +14,8 @@ interface Schedule {
   completed: number | boolean
   category?: string
   dueDate?: string
+  clientName?: string
+  webData?: number | boolean
   createdAt?: string
   updatedAt?: string
 }
@@ -23,7 +25,7 @@ interface ScheduleProps {
 }
 
 export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
-  const [todos, setSchedules] = useState<Schedule[]>([])
+  const [schedules, setSchedules] = useState<Schedule[]>([])
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [deletingSchedules, setDeletingSchedules] = useState<Set<number>>(new Set())
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -44,23 +46,25 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
     onDialogChange?.(showAddDialog)
   }, [showAddDialog, onDialogChange])
 
-  const addSchedule = async (schedule: { text: string; category?: string; dueDate?: Date }) => {
+  const addSchedule = async (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; webData?: boolean }) => {
     if (window.electron) {
       await window.electron.ipcRenderer.invoke('schedules:create', {
         text: schedule.text,
         completed: false,
         category: schedule.category,
-        dueDate: schedule.dueDate?.toISOString()
+        dueDate: schedule.dueDate?.toISOString(),
+        clientName: schedule.clientName,
+        webData: schedule.webData
       })
       await loadSchedules()
     }
   }
 
   const toggleSchedule = async (id: number) => {
-    const todo = todos.find(t => t.id === id)
-    if (todo && window.electron) {
+    const schedule = schedules.find(s => s.id === id)
+    if (schedule && window.electron) {
       await window.electron.ipcRenderer.invoke('schedules:update', id, {
-        completed: !todo.completed
+        completed: !schedule.completed
       })
       await loadSchedules()
     }
@@ -82,7 +86,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
   }
 
   const clearCompletedSchedules = () => {
-    const completedIds = todos.filter(todo => todo.completed).map(todo => todo.id)
+    const completedIds = schedules.filter(schedule => schedule.completed).map(schedule => schedule.id)
     setDeletingSchedules(new Set(completedIds))
     setTimeout(async () => {
       if (window.electron) {
@@ -98,6 +102,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
       case 'develop': return 'bg-gray-100 text-primary'
       case 'reflect': return 'bg-gray-100 text-accent-foreground'
       case 'inspection': return 'bg-gray-100 text-secondary-foreground'
+      case 'ex': return 'bg-gray-100 text-muted-foreground'
       default: return 'bg-gray-100 text-muted-foreground'
     }
   }
@@ -107,15 +112,16 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
       case 'develop': return '개발/수정'
       case 'reflect': return '운영 반영'
       case 'inspection': return '서비스 점검'
+      case 'ex': return '기타'
       default: return category
     }
   }
 
   const categories = [
-    { id: null, name: '전체', icon: List, count: todos.length },
-    { id: 'develop', name: '개발/수정', icon: CodeXml, count: todos.filter(t => t.category === 'develop').length },
-    { id: 'reflect', name: '운영 반영', icon: Send, count: todos.filter(t => t.category === 'reflect').length },
-    { id: 'inspection', name: '서비스 점검', icon: BadgeCheck, count: todos.filter(t => t.category === 'inspection').length }
+    { id: null, name: '전체', icon: List, count: schedules.length },
+    { id: 'develop', name: '개발/수정', icon: CodeXml, count: schedules.filter(s => s.category === 'develop').length },
+    { id: 'reflect', name: '운영 반영', icon: Send, count: schedules.filter(s => s.category === 'reflect').length },
+    { id: 'inspection', name: '서비스 점검', icon: BadgeCheck, count: schedules.filter(s => s.category === 'inspection').length }
   ]
 
   const getCategoryBadgeColor = (categoryId: string | null, isSelected: boolean) => {
@@ -137,10 +143,10 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
   }
 
   const filteredSchedules = selectedCategory
-    ? todos.filter(todo => todo.category === selectedCategory)
-    : todos
+    ? schedules.filter(schedule => schedule.category === selectedCategory)
+    : schedules
 
-  const completedCount = filteredSchedules.filter(todo => todo.completed).length
+  const completedCount = filteredSchedules.filter(schedule => schedule.completed).length
   const totalCount = filteredSchedules.length
 
   return (
@@ -150,6 +156,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
           <div className="flex items-center justify-between min-h-[60px]">
             <div className="flex flex-col justify-center">
               <CardTitle className="text-2xl font-bold text-card-foreground leading-tight">Work Schedule Check</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">업무 스케줄 확인</p>
             </div>
             <div className="flex items-center gap-2 h-full">
               <Badge variant="secondary" className="text-sm font-medium">
@@ -198,11 +205,11 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
 
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            {filteredSchedules.map((todo) => (
+            {filteredSchedules.map((schedule) => (
               <Card
-                key={todo.id}
+                key={schedule.id}
                 className={`border border-border bg-card/70 backdrop-blur-sm hover:shadow-md transition-all duration-300 ${
-                  deletingSchedules.has(todo.id)
+                  deletingSchedules.has(schedule.id)
                     ? 'transform -translate-x-full opacity-0'
                     : 'transform translate-x-0 opacity-100'
                 }`}
@@ -210,24 +217,37 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <Checkbox
-                      checked={Boolean(todo.completed)}
-                      onCheckedChange={() => toggleSchedule(todo.id)}
+                      checked={Boolean(schedule.completed)}
+                      onCheckedChange={() => toggleSchedule(schedule.id)}
                       className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className={`text-sm font-medium transition-all duration-200 ${todo.completed ? 'line-through text-muted-foreground' : 'text-card-foreground'}`}>
-                        {todo.text}
-                      </span>
+                      <div className={`text-sm transition-all duration-200 ${schedule.completed ? 'line-through text-muted-foreground' : 'text-card-foreground'}`}>
+                        {schedule.clientName && (
+                          <>
+                            <span className="font-bold">{schedule.clientName}</span>
+                            <span className="font-medium"> - {schedule.text}</span>
+                          </>
+                        )}
+                        {!schedule.clientName && (
+                          <span className="font-medium">{schedule.text}</span>
+                        )}
+                      </div>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {todo.category && (
-                          <Badge variant="secondary" className={`text-xs ${getCategoryColor(todo.category)}`}>
-                            {getCategoryLabel(todo.category)}
+                        {schedule.category && (
+                          <Badge variant="secondary" className={`text-xs ${getCategoryColor(schedule.category)}`}>
+                            {getCategoryLabel(schedule.category)}
                           </Badge>
                         )}
-                        {todo.dueDate && (
+                        {schedule.dueDate && (
                           <Badge variant="outline" className="text-xs bg-accent/10 text-accent-foreground border-border">
                             <CalendarIcon className="w-3 h-3 mr-1" />
-                            {format(new Date(todo.dueDate), "MM/dd", { locale: ko })}
+                            {format(new Date(schedule.dueDate), "MM/dd", { locale: ko })}
+                          </Badge>
+                        )}
+                        {schedule.category === 'reflect' && (
+                          <Badge variant="outline" className={`text-xs ${(schedule.webData === 1 || schedule.webData === true) ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>
+                            {(schedule.webData === 1 || schedule.webData === true) ? 'O' : 'X'}
                           </Badge>
                         )}
                       </div>
@@ -235,7 +255,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => deleteSchedule(todo.id)}
+                      onClick={() => deleteSchedule(schedule.id)}
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
@@ -8,12 +8,24 @@ interface TodoAddProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onAddTodo: (todo: { text: string; category?: string }) => void
+  editingTodo?: { text: string; category?: string } | null
 }
 
-export function TodoAdd({ open, onOpenChange, onAddTodo }: TodoAddProps) {
+export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddProps) {
   const [newTodo, setNewTodo] = useState('')
   const [newCategory, setNewCategory] = useState('')
   const [alertMessage, setAlertMessage] = useState<string | null>(null)
+
+  // Load editing todo data when editingTodo changes
+  useEffect(() => {
+    if (editingTodo) {
+      setNewTodo(editingTodo.text)
+      setNewCategory(editingTodo.category || '')
+    } else {
+      setNewTodo('')
+      setNewCategory('')
+    }
+  }, [editingTodo])
 
   const handleAdd = () => {
     if (!newTodo.trim()) {
@@ -44,8 +56,12 @@ export function TodoAdd({ open, onOpenChange, onAddTodo }: TodoAddProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-background/95 backdrop-blur-md border-2 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">Add Todo</DialogTitle>
-          <DialogDescription>오늘의 할 일을 추가하세요.</DialogDescription>
+          <DialogTitle className="text-lg font-bold">
+            {editingTodo ? 'Edit Todo' : 'Add Todo'}
+          </DialogTitle>
+          <DialogDescription>
+            {editingTodo ? '할 일을 수정하세요.' : '오늘의 할 일을 추가하세요.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-4">
@@ -93,7 +109,7 @@ export function TodoAdd({ open, onOpenChange, onAddTodo }: TodoAddProps) {
               취소
             </Button>
             <Button onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              추가
+              {editingTodo ? '수정' : '추가'}
             </Button>
           </div>
         </div>

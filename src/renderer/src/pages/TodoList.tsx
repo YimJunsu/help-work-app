@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Checkbox } from '../components/ui/checkbox'
 import { Badge } from '../components/ui/badge'
-import { Plus, Trash2, CheckCheck, List } from 'lucide-react'
+import { Plus, Trash2, CheckCheck, List, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { TodoAdd } from './TodoAdd'
@@ -45,6 +45,8 @@ export function TodoList({ onDialogChange }: TodoListProps) {
   })
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [deletingTodos, setDeletingTodos] = useState<Set<string>>(new Set())
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
+  const [draggedTodo, setDraggedTodo] = useState<string | null>(null)
 
   // Save todos to localStorage whenever they change
   useEffect(() => {
@@ -56,16 +58,32 @@ export function TodoList({ onDialogChange }: TodoListProps) {
   }, [showAddDialog, onDialogChange])
 
   const addTodo = (todo: { text: string; category?: string }) => {
-    setTodos([
-      ...todos,
-      {
-        id: Date.now().toString(),
-        text: todo.text,
-        completed: false,
-        category: todo.category,
-        date: today
-      }
-    ])
+    if (editingTodo) {
+      // Update existing todo
+      setTodos(todos.map(t =>
+        t.id === editingTodo.id
+          ? { ...t, text: todo.text, category: todo.category }
+          : t
+      ))
+      setEditingTodo(null)
+    } else {
+      // Add new todo
+      setTodos([
+        ...todos,
+        {
+          id: Date.now().toString(),
+          text: todo.text,
+          completed: false,
+          category: todo.category,
+          date: today
+        }
+      ])
+    }
+  }
+
+  const startEditTodo = (todo: Todo) => {
+    setEditingTodo(todo)
+    setShowAddDialog(true)
   }
 
   const toggleTodo = (id: string) => {
@@ -93,6 +111,44 @@ export function TodoList({ onDialogChange }: TodoListProps) {
       setTodos(todos => todos.filter(todo => !todo.completed))
       setDeletingTodos(new Set())
     }, 300)
+  }
+
+  const handleDragStart = (e: React.DragEvent, todoId: string) => {
+    setDraggedTodo(todoId)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = (e: React.DragEvent, targetTodoId: string) => {
+    e.preventDefault()
+
+    if (!draggedTodo || draggedTodo === targetTodoId) {
+      setDraggedTodo(null)
+      return
+    }
+
+    const draggedIndex = todos.findIndex(t => t.id === draggedTodo)
+    const targetIndex = todos.findIndex(t => t.id === targetTodoId)
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedTodo(null)
+      return
+    }
+
+    const newTodos = [...todos]
+    const [removed] = newTodos.splice(draggedIndex, 1)
+    newTodos.splice(targetIndex, 0, removed)
+
+    setTodos(newTodos)
+    setDraggedTodo(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedTodo(null)
   }
 
   const completedCount = todos.filter(todo => todo.completed).length
@@ -141,11 +197,16 @@ export function TodoList({ onDialogChange }: TodoListProps) {
             {todos.map((todo) => (
               <Card
                 key={todo.id}
-                className={`border border-border bg-card/70 backdrop-blur-sm hover:shadow-md transition-all duration-300 ${
+                draggable
+                onDragStart={(e) => handleDragStart(e, todo.id)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, todo.id)}
+                onDragEnd={handleDragEnd}
+                className={`border border-border bg-card/70 backdrop-blur-sm hover:shadow-md transition-all duration-300 cursor-move ${
                   deletingTodos.has(todo.id)
                     ? 'transform -translate-x-full opacity-0'
                     : 'transform translate-x-0 opacity-100'
-                }`}
+                } ${draggedTodo === todo.id ? 'opacity-50' : ''}`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
@@ -166,6 +227,14 @@ export function TodoList({ onDialogChange }: TodoListProps) {
                         </div>
                       )}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startEditTodo(todo)}
+                      className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -193,8 +262,12 @@ export function TodoList({ onDialogChange }: TodoListProps) {
       {/* 할 일 추가 다이얼로그 */}
       <TodoAdd
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={(open) => {
+          setShowAddDialog(open)
+          if (!open) setEditingTodo(null)
+        }}
         onAddTodo={addTodo}
+        editingTodo={editingTodo}
       />
     </div>
   )

@@ -77,7 +77,9 @@ app.whenReady().then(() => {
       text: schedule.text,
       completed: schedule.completed,
       category: schedule.category,
-      dueDate: schedule.dueDate ? new Date(schedule.dueDate) : undefined
+      dueDate: schedule.dueDate ? new Date(schedule.dueDate) : undefined,
+      clientName: schedule.clientName,
+      webData: schedule.webData
     })
   })
 
