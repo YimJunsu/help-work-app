@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Checkbox } from '../components/ui/checkbox'
 import { Badge } from '../components/ui/badge'
 import { Plus, Trash2, CheckCheck, List, Pencil } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import { TodoAdd } from './TodoAdd'
 
 interface Todo {
@@ -159,12 +157,7 @@ export function TodoList({ onDialogChange }: TodoListProps) {
       <Card className="flex-1 border-0 bg-card">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between min-h-[60px]">
-            <div className="flex flex-col justify-center">
-              <CardTitle className="text-2xl font-bold text-card-foreground leading-tight">Daily Todo List</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {format(today, "yyyy년 MM월 dd일 (EEE)", { locale: ko })}
-              </p>
-            </div>
+            <CardTitle className="text-2xl font-bold text-card-foreground leading-tight">Daily Todo List</CardTitle>
             <div className="flex items-center gap-2 h-full">
               <Badge variant="secondary" className="text-sm font-medium">
                 {completedCount}/{totalCount} 완료

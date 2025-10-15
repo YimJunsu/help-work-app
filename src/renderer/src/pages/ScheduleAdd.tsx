@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
@@ -15,15 +15,33 @@ interface ScheduleAddProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onAddSchedule: (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; webData?: boolean }) => void
+  editingSchedule?: { id: number; text: string; category?: string; dueDate?: string; clientName?: string; webData?: number | boolean } | null
 }
 
-export function ScheduleAdd({ open, onOpenChange, onAddSchedule }: ScheduleAddProps) {
+export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule }: ScheduleAddProps) {
   const [newSchedule, setNewSchedule] = useState('')
   const [clientName, setClientName] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [newScheduleCategory, setNewScheduleCategory] = useState<string | undefined>(undefined)
   const [webData, setWebData] = useState<boolean>(false)
   const [alertMessage, setAlertMessage] = useState<string | null>(null)
+
+  // Load editing schedule data when editingSchedule changes
+  useEffect(() => {
+    if (editingSchedule) {
+      setNewSchedule(editingSchedule.text)
+      setClientName(editingSchedule.clientName || '')
+      setSelectedDate(editingSchedule.dueDate ? new Date(editingSchedule.dueDate) : undefined)
+      setNewScheduleCategory(editingSchedule.category)
+      setWebData(Boolean(editingSchedule.webData))
+    } else {
+      setNewSchedule('')
+      setClientName('')
+      setSelectedDate(undefined)
+      setNewScheduleCategory(undefined)
+      setWebData(false)
+    }
+  }, [editingSchedule])
 
   const handleAdd = () => {
     if (!clientName.trim()) {
@@ -78,8 +96,8 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule }: ScheduleAddPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-background/95 backdrop-blur-md border-2 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">Add Schedule</DialogTitle>
-          <DialogDescription>새로운 일정을 추가하세요.</DialogDescription>
+          <DialogTitle className="text-lg font-bold">{editingSchedule ? 'Edit Schedule' : 'Add Schedule'}</DialogTitle>
+          <DialogDescription>{editingSchedule ? '일정을 수정하세요.' : '새로운 일정을 추가하세요.'}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-4">
@@ -176,7 +194,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule }: ScheduleAddPr
               취소
             </Button>
             <Button onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              추가
+              {editingSchedule ? '수정' : '추가'}
             </Button>
           </div>
         </div>

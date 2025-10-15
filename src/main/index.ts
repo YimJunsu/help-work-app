@@ -10,7 +10,17 @@ import {
   createSchedule,
   updateSchedule,
   deleteSchedule,
-  deleteCompletedSchedules
+  deleteCompletedSchedules,
+  getAllMemos,
+  createMemo,
+  updateMemo,
+  deleteMemo,
+  getTodoStatsByDateRange,
+  getTodoStatByDate,
+  incrementTodoStat,
+  resetTodoStat,
+  getUserInfo,
+  createOrUpdateUserInfo
 } from './database'
 
 let mainWindow: BrowserWindow | null = null
@@ -31,6 +41,20 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+  })
+
+  // DevTools 콘솔 오류 무시 설정
+  mainWindow.webContents.on('devtools-opened', () => {
+    mainWindow?.webContents.executeJavaScript(`
+      const originalError = console.error;
+      console.error = function(...args) {
+        const message = args.join(' ');
+        if (message.includes('Autofill.enable') || message.includes('Autofill.setAddresses')) {
+          return;
+        }
+        originalError.apply(console, args);
+      };
+    `)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -100,6 +124,56 @@ app.whenReady().then(() => {
 
   ipcMain.handle('schedules:deleteCompleted', () => {
     return deleteCompletedSchedules()
+  })
+
+  // Memo IPC handlers
+  ipcMain.handle('memos:getAll', () => {
+    return getAllMemos()
+  })
+
+  ipcMain.handle('memos:create', (_event, memo) => {
+    return createMemo({
+      content: memo.content
+    })
+  })
+
+  ipcMain.handle('memos:update', (_event, id, updates) => {
+    return updateMemo(id, {
+      content: updates.content
+    })
+  })
+
+  ipcMain.handle('memos:delete', (_event, id) => {
+    return deleteMemo(id)
+  })
+
+  // TodoStats IPC handlers
+  ipcMain.handle('todoStats:getByDateRange', (_event, startDate, endDate) => {
+    return getTodoStatsByDateRange(startDate, endDate)
+  })
+
+  ipcMain.handle('todoStats:getByDate', (_event, date) => {
+    return getTodoStatByDate(date)
+  })
+
+  ipcMain.handle('todoStats:increment', (_event, date) => {
+    return incrementTodoStat(date)
+  })
+
+  ipcMain.handle('todoStats:reset', (_event, date) => {
+    return resetTodoStat(date)
+  })
+
+  // UserInfo IPC handlers
+  ipcMain.handle('userInfo:get', () => {
+    return getUserInfo()
+  })
+
+  ipcMain.handle('userInfo:createOrUpdate', (_event, userInfo) => {
+    return createOrUpdateUserInfo({
+      name: userInfo.name,
+      birthday: userInfo.birthday
+    })
   })
 
   // Auto-updater IPC handlers

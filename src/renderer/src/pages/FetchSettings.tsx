@@ -112,14 +112,44 @@ export function FetchSettings() {
     }
   }
 
+  // 마크다운을 HTML로 변환 (간단한 변환)
+  const parseMarkdown = (markdown: string): string => {
+    let html = markdown
+
+    // 헤딩 변환 (### -> <h3>)
+    html = html.replace(/^### (.*$)/gim, '<h3 class="text-base font-bold mb-2 mt-4">$1</h3>')
+    html = html.replace(/^## (.*$)/gim, '<h2 class="text-lg font-bold mb-2 mt-4">$1</h2>')
+    html = html.replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold mb-3 mt-4">$1</h1>')
+
+    // 볼드 텍스트 변환 (**text** -> <strong>)
+    html = html.replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold">$1</strong>')
+
+    // 이탤릭 변환 (*text* -> <em>)
+    html = html.replace(/\*(.*?)\*/gim, '<em class="italic">$1</em>')
+
+    // 링크 변환 ([text](url) -> <a>)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" class="text-primary hover:underline" target="_blank">$1</a>')
+
+    // 리스트 변환 (- item -> <li>)
+    html = html.replace(/^- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
+
+    // 코드 블록 변환 (`code` -> <code>)
+    html = html.replace(/`([^`]+)`/gim, '<code class="bg-muted px-1 py-0.5 rounded text-sm font-mono">$1</code>')
+
+    // 줄바꿈 변환
+    html = html.replace(/\n/gim, '<br>')
+
+    return html
+  }
+
   const formatReleaseNotes = (notes?: string | Array<{ version: string; note: string }>): string => {
     if (!notes) return '릴리즈 노트가 없습니다.'
 
     if (typeof notes === 'string') {
-      return notes
+      return parseMarkdown(notes)
     }
 
-    return notes.map(item => `버전 ${item.version}:\n${item.note}`).join('\n\n')
+    return notes.map(item => `<div><strong>버전 ${item.version}:</strong><br>${parseMarkdown(item.note)}</div>`).join('<br><br>')
   }
 
   return (
@@ -283,11 +313,10 @@ export function FetchSettings() {
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-4">
-            <div className="bg-muted/50 rounded-lg p-4">
-              <pre className="whitespace-pre-wrap text-sm font-mono">
-                {formatReleaseNotes(updateInfo?.releaseNotes)}
-              </pre>
-            </div>
+            <div
+              className="bg-muted/50 rounded-lg p-4 prose prose-sm max-w-none dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: formatReleaseNotes(updateInfo?.releaseNotes) }}
+            />
           </div>
           <DialogFooter>
             <Button onClick={(): void => setShowReleaseNotes(false)}>
@@ -322,11 +351,10 @@ export function FetchSettings() {
                   {updateInfo?.releaseNotes && (
                     <div className="mt-3 pt-3 border-t">
                       <div className="text-sm font-medium mb-2">주요 변경 사항:</div>
-                      <div className="text-sm text-muted-foreground max-h-32 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap font-sans">
-                          {formatReleaseNotes(updateInfo.releaseNotes)}
-                        </pre>
-                      </div>
+                      <div
+                        className="text-sm text-muted-foreground max-h-32 overflow-y-auto prose prose-sm max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: formatReleaseNotes(updateInfo.releaseNotes) }}
+                      />
                     </div>
                   )}
                 </div>

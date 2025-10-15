@@ -17,8 +17,13 @@ import {
 } from "./components/ui/sidebar"
 import { ScheduleCheck } from "./pages/ScheduleCheck"
 import { TodoList } from "./pages/TodoList"
+import { Dashboard } from "./pages/Dashboard"
 import Memo from "./pages/Memo"
-import { CheckSquare, Settings, List, Palette, Moon, Sun, Download, ListTodo } from "lucide-react"
+import { MiniGame } from "./pages/MiniGame"
+import { UserInfo } from "./pages/UserInfo"
+import { CheckSquare, FileText, List, Palette, Moon, Sun, Download, ListTodo, Gamepad2, User, Calendar } from "lucide-react"
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 import { ThemeSelector } from "./pages/ThemeSelector"
 import { FetchSettings } from "./pages/FetchSettings"
 import { Button } from "./components/ui/button"
@@ -31,11 +36,12 @@ function App(): React.JSX.Element {
     return localStorage.getItem('selected-theme') || 'shadcn'
   })
 
-  const [currentPage, setCurrentPage] = useState<'todo' | 'ScheduleCheck' | 'memo' | 'fetch'>('todo')
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'fetch' | 'minigame' | 'userinfo'>('dashboard')
   const [showThemeDialog, setShowThemeDialog] = useState(false)
   const [hasTodoDialog, setHasTodoDialog] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(() => getDarkMode())
   const [updateAvailable, setUpdateAvailable] = useState(false)
+  const [userName, setUserName] = useState<string | null>(null)
 
   // 초기 렌더 시 localStorage에 저장된 테마를 실제로 적용
   useEffect(() => {
@@ -53,6 +59,33 @@ function App(): React.JSX.Element {
     const newDarkMode = toggleDarkMode()
     setIsDarkMode(newDarkMode)
   }
+
+  // 사용자 정보 불러오기
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      if (window.electron) {
+        const userInfo = await window.electron.ipcRenderer.invoke('userInfo:get')
+        if (userInfo) {
+          setUserName(userInfo.name)
+        } else {
+          setUserName(null)
+        }
+      }
+    }
+    loadUserInfo()
+
+    // 사용자 정보 업데이트 이벤트 리스너
+    const handleUserInfoUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent
+      setUserName(customEvent.detail.name)
+    }
+
+    window.addEventListener('userInfoUpdated', handleUserInfoUpdate)
+
+    return () => {
+      window.removeEventListener('userInfoUpdated', handleUserInfoUpdate)
+    }
+  }, [currentPage])
 
   // 업데이트 확인
   useEffect(() => {
@@ -112,7 +145,10 @@ function App(): React.JSX.Element {
       <div className="min-h-screen flex w-full bg-background">
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center gap-2 px-2 py-1">
+            <div
+              className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-accent/50 rounded-md transition-colors"
+              onClick={() => setCurrentPage('dashboard')}
+            >
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <List className="w-4 h-4 text-primary-foreground" />
               </div>
@@ -151,8 +187,17 @@ function App(): React.JSX.Element {
                       isActive={currentPage === 'memo'}
                       onClick={() => setCurrentPage('memo')}
                     >
-                      <Settings />
+                      <FileText />
                       <span>Memo</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={currentPage === 'minigame'}
+                      onClick={() => setCurrentPage('minigame')}
+                    >
+                      <Gamepad2 />
+                      <span>Mini Game</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -188,15 +233,28 @@ function App(): React.JSX.Element {
                       </span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={currentPage === 'userinfo'}
+                      onClick={() => setCurrentPage('userinfo')}
+                    >
+                      <User />
+                      <span>사용자 정보</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-            <div className="px-4 py-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
+            <SidebarSeparator />
+            <div className="px-4 py-3 space-y-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
                   `
                 </kbd>
                 <span>Click! You can change theme.</span>
+              </div>
+              <div className="text-sm font-medium text-card-foreground border-t border-border pt-3">
+                {userName ? `Hello, ${userName}님!` : '사용자 정보 등록해주세요!'}
               </div>
             </div>
           </SidebarFooter>
@@ -205,14 +263,6 @@ function App(): React.JSX.Element {
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />
-            <Button
-              onClick={handleDarkModeToggle}
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            >
-              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
             <div className="flex items-center gap-2 text-sm text-muted-foreground flex-1">
               <div
                 className={`w-2 h-2 rounded-full ${
@@ -221,16 +271,34 @@ function App(): React.JSX.Element {
               ></div>
               <span>{currentTheme !== 'shadcn' ? `TweakCN (${currentTheme})` : 'shadcn'}</span>
             </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              <span>{format(new Date(), "yyyy년 MM월 dd일 (EEE)", { locale: ko })}</span>
+            </div>
+            <Button
+              onClick={handleDarkModeToggle}
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
           </header>
           <main className="flex-1 p-4">
-            {currentPage === 'todo' ? (
+            {currentPage === 'dashboard' ? (
+              <Dashboard onNavigate={setCurrentPage} />
+            ) : currentPage === 'todo' ? (
               <TodoList onDialogChange={setHasTodoDialog} />
             ) : currentPage === 'ScheduleCheck' ? (
               <ScheduleCheck onDialogChange={setHasTodoDialog} />
             ) : currentPage === 'memo' ? (
-              <Memo />
+              <Memo onDialogChange={setHasTodoDialog} />
             ) : currentPage === 'fetch' ? (
               <FetchSettings />
+            ) : currentPage === 'minigame' ? (
+              <MiniGame />
+            ) : currentPage === 'userinfo' ? (
+              <UserInfo />
             ) : null}
           </main>
         </SidebarInset>

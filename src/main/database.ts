@@ -16,6 +16,27 @@ export interface Schedule {
   updatedAt: string
 }
 
+export interface Memo {
+  id: number
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TodoStat {
+  id: number
+  date: string // YYYY-MM-DD format
+  count: number
+}
+
+export interface UserInfo {
+  id: number
+  name: string
+  birthday: string // YYYY-MM-DD format
+  createdAt: string
+  updatedAt: string
+}
+
 export function initDatabase(): any {
   const userDataPath = app.getPath('userData')
   const dbPath = path.join(userDataPath, 'schedules.db')
@@ -50,6 +71,36 @@ export function initDatabase(): any {
   } catch (error) {
     // Column already exists, ignore error
   }
+
+  // Create memos table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS memos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    )
+  `)
+
+  // Create todo_stats table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS todo_stats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL UNIQUE,
+      count INTEGER DEFAULT 0
+    )
+  `)
+
+  // Create user_info table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_info (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      birthday TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    )
+  `)
 
   console.log('Database initialized at:', dbPath)
   return db
@@ -181,4 +232,123 @@ export function deleteCompletedSchedules(): number {
   const stmt = db.prepare('DELETE FROM schedules WHERE completed = 1')
   const result = stmt.run()
   return result.changes
+}
+
+// Memo CRUD operations
+export function getAllMemos(): Memo[] {
+  const db = getDatabase()
+  const stmt = db.prepare('SELECT * FROM memos ORDER BY createdAt DESC')
+  return stmt.all() as Memo[]
+}
+
+export function getMemoById(id: number): Memo | undefined {
+  const db = getDatabase()
+  const stmt = db.prepare('SELECT * FROM memos WHERE id = ?')
+  return stmt.get(id) as Memo | undefined
+}
+
+export function createMemo(memo: { content: string }): Memo {
+  const db = getDatabase()
+  const now = new Date().toISOString()
+
+  const stmt = db.prepare(`
+    INSERT INTO memos (content, createdAt, updatedAt)
+    VALUES (?, ?, ?)
+  `)
+
+  const result = stmt.run(memo.content, now, now)
+  return getMemoById(Number(result.lastInsertRowid))!
+}
+
+export function updateMemo(id: number, updates: { content: string }): Memo {
+  const db = getDatabase()
+  const now = new Date().toISOString()
+
+  const stmt = db.prepare(`
+    UPDATE memos
+    SET content = ?, updatedAt = ?
+    WHERE id = ?
+  `)
+
+  stmt.run(updates.content, now, id)
+  return getMemoById(id)!
+}
+
+export function deleteMemo(id: number): boolean {
+  const db = getDatabase()
+  const stmt = db.prepare('DELETE FROM memos WHERE id = ?')
+  const result = stmt.run(id)
+  return result.changes > 0
+}
+
+// TodoStat CRUD operations
+export function getTodoStatsByDateRange(startDate: string, endDate: string): TodoStat[] {
+  const db = getDatabase()
+  const stmt = db.prepare('SELECT * FROM todo_stats WHERE date >= ? AND date <= ? ORDER BY date ASC')
+  return stmt.all(startDate, endDate) as TodoStat[]
+}
+
+export function getTodoStatByDate(date: string): TodoStat | undefined {
+  const db = getDatabase()
+  const stmt = db.prepare('SELECT * FROM todo_stats WHERE date = ?')
+  return stmt.get(date) as TodoStat | undefined
+}
+
+export function incrementTodoStat(date: string): TodoStat {
+  const db = getDatabase()
+
+  // Try to get existing stat
+  const existing = getTodoStatByDate(date)
+
+  if (existing) {
+    // Increment existing count
+    const stmt = db.prepare('UPDATE todo_stats SET count = count + 1 WHERE date = ?')
+    stmt.run(date)
+  } else {
+    // Create new entry with count 1
+    const stmt = db.prepare('INSERT INTO todo_stats (date, count) VALUES (?, 1)')
+    stmt.run(date)
+  }
+
+  return getTodoStatByDate(date)!
+}
+
+export function resetTodoStat(date: string): boolean {
+  const db = getDatabase()
+  const stmt = db.prepare('DELETE FROM todo_stats WHERE date = ?')
+  const result = stmt.run(date)
+  return result.changes > 0
+}
+
+// UserInfo CRUD operations
+export function getUserInfo(): UserInfo | undefined {
+  const db = getDatabase()
+  const stmt = db.prepare('SELECT * FROM user_info LIMIT 1')
+  return stmt.get() as UserInfo | undefined
+}
+
+export function createOrUpdateUserInfo(userInfo: { name: string; birthday: string }): UserInfo {
+  const db = getDatabase()
+  const now = new Date().toISOString()
+
+  const existing = getUserInfo()
+
+  if (existing) {
+    // Update existing user info
+    const stmt = db.prepare(`
+      UPDATE user_info
+      SET name = ?, birthday = ?, updatedAt = ?
+      WHERE id = ?
+    `)
+    stmt.run(userInfo.name, userInfo.birthday, now, existing.id)
+  } else {
+    // Create new user info
+    const stmt = db.prepare(`
+      INSERT INTO user_info (name, birthday, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?)
+    `)
+    stmt.run(userInfo.name, userInfo.birthday, now, now)
+  }
+
+  return getUserInfo()!
 }

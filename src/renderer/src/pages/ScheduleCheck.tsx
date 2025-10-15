@@ -3,8 +3,8 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Checkbox } from '../components/ui/checkbox'
 import { Badge } from '../components/ui/badge'
-import { Plus, Trash2, Calendar as CalendarIcon, List, CodeXml, Send, BadgeCheck, CheckCheck } from 'lucide-react'
-import { format } from 'date-fns'
+import { Plus, Trash2, Calendar as CalendarIcon, List, CodeXml, Send, BadgeCheck, CheckCheck, Pencil, AlertCircle } from 'lucide-react'
+import { format, differenceInDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ScheduleAdd } from './ScheduleAdd'
 
@@ -29,6 +29,9 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [deletingSchedules, setDeletingSchedules] = useState<Set<number>>(new Set())
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null)
+  const [draggedSchedule, setDraggedSchedule] = useState<number | null>(null)
+  const [sortByLatest, setSortByLatest] = useState(false)
 
   // Load schedules from database on mount
   useEffect(() => {
@@ -46,18 +49,36 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
     onDialogChange?.(showAddDialog)
   }, [showAddDialog, onDialogChange])
 
-  const addSchedule = async (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; webData?: boolean }) => {
+  const addOrUpdateSchedule = async (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; webData?: boolean }) => {
     if (window.electron) {
-      await window.electron.ipcRenderer.invoke('schedules:create', {
-        text: schedule.text,
-        completed: false,
-        category: schedule.category,
-        dueDate: schedule.dueDate?.toISOString(),
-        clientName: schedule.clientName,
-        webData: schedule.webData
-      })
+      if (editingSchedule) {
+        // Update existing schedule
+        await window.electron.ipcRenderer.invoke('schedules:update', editingSchedule.id, {
+          text: schedule.text,
+          category: schedule.category,
+          dueDate: schedule.dueDate?.toISOString(),
+          clientName: schedule.clientName,
+          webData: schedule.webData
+        })
+        setEditingSchedule(null)
+      } else {
+        // Create new schedule
+        await window.electron.ipcRenderer.invoke('schedules:create', {
+          text: schedule.text,
+          completed: false,
+          category: schedule.category,
+          dueDate: schedule.dueDate?.toISOString(),
+          clientName: schedule.clientName,
+          webData: schedule.webData
+        })
+      }
       await loadSchedules()
     }
+  }
+
+  const startEditSchedule = (schedule: Schedule) => {
+    setEditingSchedule(schedule)
+    setShowAddDialog(true)
   }
 
   const toggleSchedule = async (id: number) => {
@@ -97,13 +118,66 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
     }, 300)
   }
 
+  const handleDragStart = (e: React.DragEvent, scheduleId: number) => {
+    setDraggedSchedule(scheduleId)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = async (e: React.DragEvent, targetScheduleId: number) => {
+    e.preventDefault()
+
+    if (!draggedSchedule || draggedSchedule === targetScheduleId) {
+      setDraggedSchedule(null)
+      return
+    }
+
+    const draggedIndex = schedules.findIndex(s => s.id === draggedSchedule)
+    const targetIndex = schedules.findIndex(s => s.id === targetScheduleId)
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedSchedule(null)
+      return
+    }
+
+    const newSchedules = [...schedules]
+    const [removed] = newSchedules.splice(draggedIndex, 1)
+    newSchedules.splice(targetIndex, 0, removed)
+
+    setSchedules(newSchedules)
+    setDraggedSchedule(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedSchedule(null)
+  }
+
+  const getDDayStatus = (dueDate?: string) => {
+    if (!dueDate) return null
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const due = new Date(dueDate)
+    due.setHours(0, 0, 0, 0)
+
+    const diff = differenceInDays(due, today)
+
+    if (diff === 0) return 'dday'
+    if (diff === 1) return 'tomorrow'
+    return 'normal'
+  }
+
   const getCategoryColor = (category?: string) => {
     switch (category) {
-      case 'develop': return 'bg-gray-100 text-primary'
-      case 'reflect': return 'bg-gray-100 text-accent-foreground'
-      case 'inspection': return 'bg-gray-100 text-secondary-foreground'
-      case 'ex': return 'bg-gray-100 text-muted-foreground'
-      default: return 'bg-gray-100 text-muted-foreground'
+      case 'develop': return 'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary border border-primary/30'
+      case 'reflect': return 'bg-accent/20 text-accent-foreground dark:bg-accent/30 dark:text-accent-foreground border border-accent/30'
+      case 'inspection': return 'bg-secondary/30 text-secondary-foreground dark:bg-secondary/40 dark:text-secondary-foreground border border-secondary/40'
+      case 'ex': return 'bg-muted/50 text-muted-foreground dark:bg-muted dark:text-foreground border border-border'
+      default: return 'bg-muted/50 text-muted-foreground dark:bg-muted dark:text-foreground border border-border'
     }
   }
 
@@ -142,9 +216,23 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
     }
   }
 
-  const filteredSchedules = selectedCategory
+  let filteredSchedules = selectedCategory
     ? schedules.filter(schedule => schedule.category === selectedCategory)
     : schedules
+
+  // Sort by deadline (dueDate) if enabled
+  if (sortByLatest) {
+    filteredSchedules = [...filteredSchedules].sort((a, b) => {
+      // Sort by dueDate - items without dueDate go to the end
+      if (!a.dueDate && !b.dueDate) return 0
+      if (!a.dueDate) return 1
+      if (!b.dueDate) return -1
+
+      const dateA = new Date(a.dueDate).getTime()
+      const dateB = new Date(b.dueDate).getTime()
+      return dateA - dateB // Earliest deadline first
+    })
+  }
 
   const completedCount = filteredSchedules.filter(schedule => schedule.completed).length
   const totalCount = filteredSchedules.length
@@ -161,6 +249,13 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
             <div className="flex items-center gap-2 h-full">
               <Badge variant="secondary" className="text-sm font-medium">
                 {completedCount}/{totalCount} 완료
+              </Badge>
+              <Badge
+                variant="secondary"
+                className={`text-sm font-medium cursor-pointer transition-all duration-200 ${sortByLatest ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}
+                onClick={() => setSortByLatest(!sortByLatest)}
+              >
+                Latest
               </Badge>
               {completedCount > 0 && (
                 <Button
@@ -205,65 +300,99 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
 
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            {filteredSchedules.map((schedule) => (
-              <Card
-                key={schedule.id}
-                className={`border border-border bg-card/70 backdrop-blur-sm hover:shadow-md transition-all duration-300 ${
-                  deletingSchedules.has(schedule.id)
-                    ? 'transform -translate-x-full opacity-0'
-                    : 'transform translate-x-0 opacity-100'
-                }`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      checked={Boolean(schedule.completed)}
-                      onCheckedChange={() => toggleSchedule(schedule.id)}
-                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-sm transition-all duration-200 ${schedule.completed ? 'line-through text-muted-foreground' : 'text-card-foreground'}`}>
-                        {schedule.clientName && (
-                          <>
-                            <span className="font-bold">{schedule.clientName}</span>
-                            <span className="font-medium"> - {schedule.text}</span>
-                          </>
-                        )}
-                        {!schedule.clientName && (
-                          <span className="font-medium">{schedule.text}</span>
-                        )}
+            {filteredSchedules.map((schedule) => {
+              const ddayStatus = getDDayStatus(schedule.dueDate)
+              return (
+                <Card
+                  key={schedule.id}
+                  draggable={!sortByLatest}
+                  onDragStart={(e) => handleDragStart(e, schedule.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, schedule.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`border border-border bg-card/70 backdrop-blur-sm hover:shadow-md transition-all duration-300 ${!sortByLatest ? 'cursor-move' : ''} ${
+                    deletingSchedules.has(schedule.id)
+                      ? 'transform -translate-x-full opacity-0'
+                      : 'transform translate-x-0 opacity-100'
+                  } ${draggedSchedule === schedule.id ? 'opacity-50' : ''}`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={Boolean(schedule.completed)}
+                        onCheckedChange={() => toggleSchedule(schedule.id)}
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm transition-all duration-200 ${schedule.completed ? 'line-through text-muted-foreground' : 'text-card-foreground'}`}>
+                          {schedule.clientName && (
+                            <>
+                              <span className="font-bold">{schedule.clientName}</span>
+                              <span className="font-medium"> - {schedule.text}</span>
+                            </>
+                          )}
+                          {!schedule.clientName && (
+                            <span className="font-medium">{schedule.text}</span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {schedule.category && (
+                            <Badge variant="secondary" className={`text-xs ${getCategoryColor(schedule.category)}`}>
+                              {getCategoryLabel(schedule.category)}
+                            </Badge>
+                          )}
+                          {schedule.dueDate && (
+                            <Badge variant="outline" className="text-xs bg-accent/10 text-accent-foreground border-border">
+                              <CalendarIcon className="w-3 h-3 mr-1" />
+                              {format(new Date(schedule.dueDate), "MM/dd", { locale: ko })}
+                            </Badge>
+                          )}
+                          {schedule.category === 'reflect' && (
+                            <Badge variant="outline" className={`text-xs ${(schedule.webData === 1 || schedule.webData === true) ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700' : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/40 dark:text-red-400 dark:border-red-700'}`}>
+                              {(schedule.webData === 1 || schedule.webData === true) ? 'O' : 'X'}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {schedule.category && (
-                          <Badge variant="secondary" className={`text-xs ${getCategoryColor(schedule.category)}`}>
-                            {getCategoryLabel(schedule.category)}
-                          </Badge>
-                        )}
-                        {schedule.dueDate && (
-                          <Badge variant="outline" className="text-xs bg-accent/10 text-accent-foreground border-border">
-                            <CalendarIcon className="w-3 h-3 mr-1" />
-                            {format(new Date(schedule.dueDate), "MM/dd", { locale: ko })}
-                          </Badge>
-                        )}
-                        {schedule.category === 'reflect' && (
-                          <Badge variant="outline" className={`text-xs ${(schedule.webData === 1 || schedule.webData === true) ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}>
-                            {(schedule.webData === 1 || schedule.webData === true) ? 'O' : 'X'}
-                          </Badge>
-                        )}
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEditSchedule(schedule)}
+                        className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteSchedule(schedule.id)}
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      {ddayStatus && (
+                        <div className={`relative ${ddayStatus === 'dday' ? 'animate-bounce' : ''}`}>
+                          {ddayStatus === 'dday' && (
+                            <div className="absolute inset-0 animate-ping">
+                              <AlertCircle className="w-4 h-4 text-red-500" />
+                            </div>
+                          )}
+                          <AlertCircle
+                            className={`w-4 h-4 relative ${
+                              ddayStatus === 'dday'
+                                ? 'text-red-600 drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]'
+                                : ddayStatus === 'tomorrow'
+                                ? 'text-orange-500 drop-shadow-[0_0_4px_rgba(249,115,22,0.6)]'
+                                : 'text-green-500'
+                            }`}
+                          />
+                        </div>
+                      )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteSchedule(schedule.id)}
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
 
           {filteredSchedules.length === 0 && (
@@ -276,11 +405,15 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
         </CardContent>
       </Card>
 
-      {/* 일정추가 다이얼로그 */}
+      {/* 일정추가/수정 다이얼로그 */}
       <ScheduleAdd
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
-        onAddSchedule={addSchedule}
+        onOpenChange={(open) => {
+          setShowAddDialog(open)
+          if (!open) setEditingSchedule(null)
+        }}
+        onAddSchedule={addOrUpdateSchedule}
+        editingSchedule={editingSchedule}
       />
     </div>
   )
