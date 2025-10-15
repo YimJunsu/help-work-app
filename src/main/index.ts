@@ -199,6 +199,12 @@ app.whenReady().then(() => {
     return app.getVersion()
   })
 
+  // Auto-updater configuration
+  if (process.platform === 'darwin') {
+    autoUpdater.allowDowngrade = false
+    autoUpdater.autoDownload = false
+  }
+
   // Auto-updater events
   autoUpdater.on('update-available', (info) => {
     mainWindow?.webContents.send('update-available', info)
