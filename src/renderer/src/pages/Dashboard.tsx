@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { Calendar as CalendarIcon, ArrowRight, CheckCircle2, Cake } from 'lucide-react'
+import { Calendar as CalendarIcon, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import {
@@ -218,7 +218,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           <Card className={`border-2 ${greeting.isSpecial ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5 animate-pulse' : 'border-border/50 bg-gradient-to-r from-card to-card/50'} shadow-sm`}>
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                {greeting.icon}
                 <div>
                   <h2 className="text-2xl font-bold text-card-foreground">
                     {greeting.message}
