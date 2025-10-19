@@ -261,17 +261,76 @@ function App(): React.JSX.Element {
         </Sidebar>
 
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <SidebarTrigger className="-ml-1" />
-            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-1">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  currentTheme !== 'shadcn' ? 'bg-primary' : 'bg-muted-foreground'
-                }`}
-              ></div>
-              <span>{currentTheme !== 'shadcn' ? `TweakCN (${currentTheme})` : 'shadcn'}</span>
+            <div
+              className="flex items-center gap-1 cursor-pointer animate-pulse"
+              onClick={() => setShowThemeDialog(true)}
+              title="테마 변경"
+            >
+              {currentTheme === 'shadcn' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-gray-900 dark:bg-gray-100 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-700 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-gray-100 dark:bg-gray-800 border border-border"></div>
+                </>
+              ) : currentTheme === 'Default' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-gray-900 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-gray-600 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-gray-300 border border-border"></div>
+                </>
+              ) : currentTheme === 'Blue' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-blue-600 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-blue-400 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-blue-200 border border-border"></div>
+                </>
+              ) : currentTheme === 'Green' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-green-600 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-400 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-200 border border-border"></div>
+                </>
+              ) : currentTheme === 'Purple' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-purple-600 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-purple-400 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-purple-200 border border-border"></div>
+                </>
+              ) : currentTheme === 'Twitter' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-blue-500 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-sky-400 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-blue-300 border border-border"></div>
+                </>
+              ) : currentTheme === 'Claude' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-orange-600 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-orange-400 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-orange-200 border border-border"></div>
+                </>
+              ) : currentTheme === 'DOOM64' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-red-600 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500 border border-border"></div>
+                </>
+              ) : currentTheme === 'Kodama-Grove' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-green-700 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-white border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-950 border border-border"></div>
+                </>
+              ) : (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-primary border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-primary/70 border border-border"></div>
+                  <div className="w-3 h-3 rounded-full bg-primary/40 border border-border"></div>
+                </>
+              )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-1">
               <Calendar className="w-4 h-4" />
               <span>{format(new Date(), "yyyy년 MM월 dd일 (EEE)", { locale: ko })}</span>
             </div>

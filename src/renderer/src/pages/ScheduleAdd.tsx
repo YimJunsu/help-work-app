@@ -21,7 +21,7 @@ interface ScheduleAddProps {
 export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule }: ScheduleAddProps) {
   const [newSchedule, setNewSchedule] = useState('')
   const [clientName, setClientName] = useState('')
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [newScheduleCategory, setNewScheduleCategory] = useState<string | undefined>(undefined)
   const [webData, setWebData] = useState<boolean>(false)
   const [alertMessage, setAlertMessage] = useState<string | null>(null)
@@ -31,13 +31,13 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
     if (editingSchedule) {
       setNewSchedule(editingSchedule.text)
       setClientName(editingSchedule.clientName || '')
-      setSelectedDate(editingSchedule.dueDate ? new Date(editingSchedule.dueDate) : undefined)
+      setSelectedDate(editingSchedule.dueDate ? new Date(editingSchedule.dueDate) : new Date())
       setNewScheduleCategory(editingSchedule.category)
       setWebData(Boolean(editingSchedule.webData))
     } else {
       setNewSchedule('')
       setClientName('')
-      setSelectedDate(undefined)
+      setSelectedDate(new Date())
       setNewScheduleCategory(undefined)
       setWebData(false)
     }
@@ -75,7 +75,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
     // Reset form
     setNewSchedule('')
     setClientName('')
-    setSelectedDate(undefined)
+    setSelectedDate(new Date())
     setNewScheduleCategory(undefined)
     setWebData(false)
     setAlertMessage(null)
@@ -85,7 +85,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
   const handleCancel = () => {
     setNewSchedule('')
     setClientName('')
-    setSelectedDate(undefined)
+    setSelectedDate(new Date())
     setNewScheduleCategory(undefined)
     setWebData(false)
     setAlertMessage(null)

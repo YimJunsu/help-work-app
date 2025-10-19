@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { Calendar as CalendarIcon, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Calendar as CalendarIcon, ArrowRight, CheckCircle2, Cake } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import {
@@ -49,11 +49,24 @@ interface DashboardProps {
 export function Dashboard({ onNavigate }: DashboardProps) {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [todoStats, setTodoStats] = useState<TodoStats[]>([])
+  const [userName, setUserName] = useState<string | null>(null)
+  const [userBirthday, setUserBirthday] = useState<string | null>(null)
 
   useEffect(() => {
     loadSchedules()
     loadTodoStats()
+    loadUserInfo()
   }, [])
+
+  const loadUserInfo = async () => {
+    if (window.electron) {
+      const userInfo = await window.electron.ipcRenderer.invoke('userInfo:get')
+      if (userInfo) {
+        setUserName(userInfo.name)
+        setUserBirthday(userInfo.birthday)
+      }
+    }
+  }
 
   const loadSchedules = async () => {
     if (window.electron) {
@@ -159,19 +172,64 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   const upcomingSchedules = getUpcomingSchedules()
 
+  const getGreetingMessage = () => {
+    const hour = new Date().getHours()
+    const name = userName || '사용자'
+
+    // 생일 체크
+    if (userBirthday) {
+      const today = new Date()
+      const birthday = new Date(userBirthday)
+      if (today.getMonth() === birthday.getMonth() && today.getDate() === birthday.getDate()) {
+        return {
+          message: `생일 축하합니다 ${name}님! 🎉`,
+          isSpecial: true
+        }
+      }
+    }
+
+    // 시간대별 인사말
+    if (hour >= 5 && hour < 12) {
+      return {
+        message: `좋은 아침입니다 ${name}님! 좋은 하루 되세요 ☀️`,
+        isSpecial: false
+      }
+    } else if (hour >= 12 && hour < 18) {
+      return {
+        message: `${name}님 반갑습니다! 😊`,
+        isSpecial: false
+      }
+    } else {
+      return {
+        message: `${name}님 오늘도 고생하셨습니다 🌙`,
+        isSpecial: false
+      }
+    }
+  }
+
+  const greeting = getGreetingMessage()
+
   return (
     <div className="w-full h-full flex flex-col">
       <Card className="flex-1 border-0 bg-card">
         <CardContent className="p-6 space-y-6">
 
           {/* 웰컴 헤더 */}
-          <div className="flex items-center justify-end">
-            <div className="flex gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <div className="w-2 h-2 rounded-full bg-secondary" />
-              <div className="w-2 h-2 rounded-full bg-accent" />
-            </div>
-          </div>
+          <Card className={`border-2 ${greeting.isSpecial ? 'border-primary bg-gradient-to-r from-primary/10 to-primary/5 animate-pulse' : 'border-border/50 bg-gradient-to-r from-card to-card/50'} shadow-sm`}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                {greeting.icon}
+                <div>
+                  <h2 className="text-2xl font-bold text-card-foreground">
+                    {greeting.message}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {format(new Date(), 'yyyy년 MM월 dd일 EEEE', { locale: ko })}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* 메인 그리드 */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

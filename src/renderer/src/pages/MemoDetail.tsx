@@ -1,6 +1,4 @@
-import { Button } from '../components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
-import { X } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -22,17 +20,7 @@ export function MemoDetail({ open, onOpenChange, memo }: MemoDetailProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] bg-background/95 backdrop-blur-md border-2 shadow-2xl overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-bold">메모 상세보기</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-lg font-bold">메모 상세보기</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 pt-4">
@@ -41,9 +29,10 @@ export function MemoDetail({ open, onOpenChange, memo }: MemoDetailProps) {
           </div>
 
           <div className="p-4 bg-muted/30 rounded-md border border-border">
-            <pre className="whitespace-pre-wrap font-mono text-sm text-foreground overflow-auto">
-              {memo.content}
-            </pre>
+            <div
+              className="prose prose-sm dark:prose-invert max-w-none text-foreground overflow-auto"
+              dangerouslySetInnerHTML={{ __html: memo.content }}
+            />
           </div>
         </div>
       </DialogContent>

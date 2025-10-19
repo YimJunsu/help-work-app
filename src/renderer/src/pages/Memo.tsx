@@ -87,14 +87,6 @@ export default function Memo({ onDialogChange }: MemoProps) {
     setSelectedMemo(memo)
     setShowDetailDialog(true)
   }
-
-  const getPreviewText = (html: string) => {
-    const div = document.createElement('div')
-    div.innerHTML = html
-    const text = div.textContent || div.innerText || ''
-    return text.slice(0, 100) + (text.length > 100 ? '...' : '')
-  }
-
   const memoCount = memos.length
 
   return (
@@ -112,11 +104,6 @@ export default function Memo({ onDialogChange }: MemoProps) {
               <Badge variant="secondary" className="text-sm font-medium">
                 {memoCount}개
               </Badge>
-              <div className="flex gap-1">
-                <div className="w-3 h-3 rounded-full bg-primary border border-border" />
-                <div className="w-3 h-3 rounded-full bg-secondary border border-border" />
-                <div className="w-3 h-3 rounded-full bg-accent border border-border" />
-              </div>
               <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-md transition-all duration-200">
                 <Plus className="w-4 h-4" />
               </Button>
@@ -168,9 +155,10 @@ export default function Memo({ onDialogChange }: MemoProps) {
                       </div>
                     </div>
                     <div className="flex-1 min-h-[60px]">
-                      <p className="text-sm text-card-foreground line-clamp-3">
-                        {getPreviewText(memo.content)}
-                      </p>
+                      <div
+                        className="text-sm text-card-foreground line-clamp-3 prose prose-sm dark:prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: memo.content }}
+                      />
                     </div>
                   </div>
                 </CardContent>

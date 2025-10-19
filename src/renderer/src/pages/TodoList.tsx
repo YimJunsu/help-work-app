@@ -173,11 +173,6 @@ export function TodoList({ onDialogChange }: TodoListProps) {
                   <CheckCheck className="w-4 h-4" />
                 </Button>
               )}
-              <div className="flex gap-1">
-                <div className="w-3 h-3 rounded-full bg-primary border border-border" />
-                <div className="w-3 h-3 rounded-full bg-secondary border border-border" />
-                <div className="w-3 h-3 rounded-full bg-accent border border-border" />
-              </div>
               <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-md transition-all duration-200">
                 <Plus className="w-4 h-4" />
               </Button>

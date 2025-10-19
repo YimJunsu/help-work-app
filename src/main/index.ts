@@ -1,35 +1,17 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
-import {
-  initDatabase,
-  closeDatabase,
-  getAllSchedules,
-  createSchedule,
-  updateSchedule,
-  deleteSchedule,
-  deleteCompletedSchedules,
-  getAllMemos,
-  createMemo,
-  updateMemo,
-  deleteMemo,
-  getTodoStatsByDateRange,
-  getTodoStatByDate,
-  incrementTodoStat,
-  resetTodoStat,
-  getUserInfo,
-  createOrUpdateUserInfo
-} from './database'
+import { initDatabase, closeDatabase } from './database'
+import { registerIpcHandlers } from './ipcHandlers'
 
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1000,
+    height: 700,
     show: false,
     autoHideMenuBar: true,
     icon: icon,
@@ -88,145 +70,13 @@ app.whenReady().then(() => {
   // Initialize database
   initDatabase()
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
-  // Database IPC handlers
-  ipcMain.handle('schedules:getAll', () => {
-    return getAllSchedules()
-  })
-
-  ipcMain.handle('schedules:create', (_event, schedule) => {
-    return createSchedule({
-      text: schedule.text,
-      completed: schedule.completed,
-      category: schedule.category,
-      dueDate: schedule.dueDate ? new Date(schedule.dueDate) : undefined,
-      clientName: schedule.clientName,
-      webData: schedule.webData
-    })
-  })
-
-  ipcMain.handle('schedules:update', (_event, id, updates) => {
-    return updateSchedule(id, {
-      text: updates.text,
-      completed: updates.completed,
-      category: updates.category,
-      dueDate: updates.dueDate !== undefined
-        ? updates.dueDate ? new Date(updates.dueDate) : null
-        : undefined
-    })
-  })
-
-  ipcMain.handle('schedules:delete', (_event, id) => {
-    return deleteSchedule(id)
-  })
-
-  ipcMain.handle('schedules:deleteCompleted', () => {
-    return deleteCompletedSchedules()
-  })
-
-  // Memo IPC handlers
-  ipcMain.handle('memos:getAll', () => {
-    return getAllMemos()
-  })
-
-  ipcMain.handle('memos:create', (_event, memo) => {
-    return createMemo({
-      content: memo.content
-    })
-  })
-
-  ipcMain.handle('memos:update', (_event, id, updates) => {
-    return updateMemo(id, {
-      content: updates.content
-    })
-  })
-
-  ipcMain.handle('memos:delete', (_event, id) => {
-    return deleteMemo(id)
-  })
-
-  // TodoStats IPC handlers
-  ipcMain.handle('todoStats:getByDateRange', (_event, startDate, endDate) => {
-    return getTodoStatsByDateRange(startDate, endDate)
-  })
-
-  ipcMain.handle('todoStats:getByDate', (_event, date) => {
-    return getTodoStatByDate(date)
-  })
-
-  ipcMain.handle('todoStats:increment', (_event, date) => {
-    return incrementTodoStat(date)
-  })
-
-  ipcMain.handle('todoStats:reset', (_event, date) => {
-    return resetTodoStat(date)
-  })
-
-  // UserInfo IPC handlers
-  ipcMain.handle('userInfo:get', () => {
-    return getUserInfo()
-  })
-
-  ipcMain.handle('userInfo:createOrUpdate', (_event, userInfo) => {
-    return createOrUpdateUserInfo({
-      name: userInfo.name,
-      birthday: userInfo.birthday
-    })
-  })
-
-  // Auto-updater IPC handlers
-  ipcMain.on('check-for-updates', () => {
-    if (!is.dev) {
-      autoUpdater.checkForUpdates()
-    }
-  })
-
-  ipcMain.on('download-update', () => {
-    if (!is.dev) {
-      autoUpdater.downloadUpdate()
-    }
-  })
-
-  ipcMain.on('quit-and-install', () => {
-    if (!is.dev) {
-      autoUpdater.quitAndInstall()
-    }
-  })
-
-  ipcMain.handle('get-app-version', () => {
-    return app.getVersion()
-  })
-
-  // Auto-updater configuration
-  if (process.platform === 'darwin') {
-    autoUpdater.allowDowngrade = false
-    autoUpdater.autoDownload = false
-  }
-
-  // Auto-updater events
-  autoUpdater.on('update-available', (info) => {
-    mainWindow?.webContents.send('update-available', info)
-  })
-
-  autoUpdater.on('update-not-available', () => {
-    mainWindow?.webContents.send('update-not-available')
-  })
-
-  autoUpdater.on('download-progress', (progressInfo) => {
-    mainWindow?.webContents.send('download-progress', progressInfo)
-  })
-
-  autoUpdater.on('update-downloaded', () => {
-    mainWindow?.webContents.send('update-downloaded')
-  })
-
-  autoUpdater.on('error', (error) => {
-    console.error('Auto-update error:', error)
-  })
-
+  // Create window first
   createWindow()
+
+  // Register all IPC handlers
+  if (mainWindow) {
+    registerIpcHandlers(mainWindow)
+  }
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
