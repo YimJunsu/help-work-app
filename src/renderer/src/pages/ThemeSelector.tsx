@@ -126,6 +126,13 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
                               <div className="w-4 h-4 rounded-full bg-purple-200 border border-gray-300"></div>
                             </>
                           )}
+                          {theme.name === 'Soft Pink' && (
+                            <>
+                              <div className="w-4 h-4 rounded-full bg-pink-400 border border-gray-300"></div>
+                              <div className="w-4 h-4 rounded-full bg-pink-300 border border-gray-300"></div>
+                              <div className="w-4 h-4 rounded-full bg-pink-100 border border-gray-300"></div>
+                            </>
+                          )}
                           {theme.name === 'Twitter' && (
                             <>
                               <div className="w-4 h-4 rounded-full bg-blue-500 border border-gray-300"></div>

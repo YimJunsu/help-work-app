@@ -23,6 +23,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
   const [clientName, setClientName] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [newScheduleCategory, setNewScheduleCategory] = useState<string | undefined>(undefined)
+  const [customCategory, setCustomCategory] = useState('')
   const [webData, setWebData] = useState<boolean>(false)
   const [alertMessage, setAlertMessage] = useState<string | null>(null)
 
@@ -32,13 +33,23 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
       setNewSchedule(editingSchedule.text)
       setClientName(editingSchedule.clientName || '')
       setSelectedDate(editingSchedule.dueDate ? new Date(editingSchedule.dueDate) : new Date())
-      setNewScheduleCategory(editingSchedule.category)
+
+      // Handle custom category (기타-xxx)
+      if (editingSchedule.category?.startsWith('기타-')) {
+        setNewScheduleCategory('ex')
+        setCustomCategory(editingSchedule.category.substring(3))
+      } else {
+        setNewScheduleCategory(editingSchedule.category)
+        setCustomCategory('')
+      }
+
       setWebData(Boolean(editingSchedule.webData))
     } else {
       setNewSchedule('')
       setClientName('')
       setSelectedDate(new Date())
       setNewScheduleCategory(undefined)
+      setCustomCategory('')
       setWebData(false)
     }
   }, [editingSchedule])
@@ -59,14 +70,24 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
       return
     }
 
+    if (newScheduleCategory === 'ex' && !customCategory.trim()) {
+      setAlertMessage("기타 카테고리 내용을 입력해주세요.")
+      return
+    }
+
     if (!selectedDate) {
       setAlertMessage("마감일을 선택해주세요.")
       return
     }
 
+    // Build final category string
+    const finalCategory = newScheduleCategory === 'ex'
+      ? `기타-${customCategory.trim()}`
+      : newScheduleCategory
+
     onAddSchedule({
       text: newSchedule.trim(),
-      category: newScheduleCategory,
+      category: finalCategory,
       dueDate: selectedDate,
       clientName: clientName.trim(),
       webData: newScheduleCategory === 'reflect' ? webData : undefined
@@ -77,6 +98,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
     setClientName('')
     setSelectedDate(new Date())
     setNewScheduleCategory(undefined)
+    setCustomCategory('')
     setWebData(false)
     setAlertMessage(null)
     onOpenChange(false)
@@ -87,6 +109,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
     setClientName('')
     setSelectedDate(new Date())
     setNewScheduleCategory(undefined)
+    setCustomCategory('')
     setWebData(false)
     setAlertMessage(null)
     onOpenChange(false)
@@ -96,14 +119,20 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-background/95 backdrop-blur-md border-2 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">{editingSchedule ? 'Edit Schedule' : 'Add Schedule'}</DialogTitle>
-          <DialogDescription>{editingSchedule ? '일정을 수정하세요.' : '새로운 일정을 추가하세요.'}</DialogDescription>
+          <DialogTitle className="text-lg font-bold">
+            {editingSchedule ? "Edit Schedule" : "Add Schedule"}
+          </DialogTitle>
+          <DialogDescription>
+            {editingSchedule
+              ? "일정을 수정하세요."
+              : "새로운 일정을 추가하세요."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-4">
           {alertMessage && (
             <Alert variant="destructive">
-              <AlertTitle>오류</AlertTitle>
+              <AlertTitle>경고!</AlertTitle>
               <AlertDescription>{alertMessage}</AlertDescription>
             </Alert>
           )}
@@ -124,10 +153,10 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
               placeholder="일정 내용을 입력하세요"
               value={newSchedule}
               onChange={(e) => {
-                setNewSchedule(e.target.value)
-                setAlertMessage(null)
+                setNewSchedule(e.target.value);
+                setAlertMessage(null);
               }}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               className="border-border focus:border-ring"
               autoFocus
             />
@@ -135,7 +164,10 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Category</label>
-            <Select value={newScheduleCategory} onValueChange={setNewScheduleCategory}>
+            <Select
+              value={newScheduleCategory}
+              onValueChange={setNewScheduleCategory}
+            >
               <SelectTrigger className="border-border focus:border-ring">
                 <SelectValue placeholder="Choose Category" />
               </SelectTrigger>
@@ -148,7 +180,22 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
             </Select>
           </div>
 
-          {newScheduleCategory === 'reflect' && (
+          {newScheduleCategory === "ex" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">기타 카테고리 상세</label>
+              <Input
+                placeholder="기타 카테고리 내용을 입력하세요"
+                value={customCategory}
+                onChange={(e) => {
+                  setCustomCategory(e.target.value);
+                  setAlertMessage(null);
+                }}
+                className="border-border focus:border-ring"
+              />
+            </div>
+          )}
+
+          {newScheduleCategory === "reflect" && (
             <div className="flex items-center space-x-2">
               <label
                 htmlFor="webData"
@@ -156,8 +203,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
               >
                 웹데이터 유무
               </label>
-              <
-                Checkbox
+              <Checkbox
                 id="webData"
                 checked={webData}
                 onCheckedChange={(checked) => setWebData(checked as boolean)}
@@ -170,9 +216,16 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
             <label className="text-sm font-medium">DeadLine</label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal border-border focus:border-ring">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal border-border focus:border-ring"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "yyyy년 MM월 dd일", { locale: ko }) : <span>Choose DeadLine</span>}
+                  {selectedDate ? (
+                    format(selectedDate, "yyyy년 MM월 dd일", { locale: ko })
+                  ) : (
+                    <span>Choose DeadLine</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -187,18 +240,18 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-            >
+            <Button variant="outline" onClick={handleCancel}>
               취소
             </Button>
-            <Button onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {editingSchedule ? '수정' : '추가'}
+            <Button
+              onClick={handleAdd}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {editingSchedule ? "수정" : "추가"}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

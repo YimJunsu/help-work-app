@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Checkbox } from '../components/ui/checkbox'
 import { Badge } from '../components/ui/badge'
-import { Plus, Trash2, Calendar as CalendarIcon, List, CodeXml, Send, BadgeCheck, CheckCheck, Pencil, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Calendar as CalendarIcon, List, CodeXml, Send, BadgeCheck, CheckCheck, Pencil, AlertCircle, MoreHorizontal } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ScheduleAdd } from './ScheduleAdd'
@@ -40,8 +40,30 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
 
   const loadSchedules = async () => {
     if (window.electron) {
-      const schedules = await window.electron.ipcRenderer.invoke('schedules:getAll')
-      setSchedules(schedules)
+      const loadedSchedules = await window.electron.ipcRenderer.invoke('schedules:getAll')
+
+      // Load saved order from localStorage
+      const savedOrder = localStorage.getItem('scheduleOrder')
+      if (savedOrder) {
+        try {
+          const orderArray: number[] = JSON.parse(savedOrder)
+          // Sort schedules according to saved order
+          const orderedSchedules = [...loadedSchedules].sort((a, b) => {
+            const indexA = orderArray.indexOf(a.id)
+            const indexB = orderArray.indexOf(b.id)
+            // Items not in order array go to the end
+            if (indexA === -1 && indexB === -1) return 0
+            if (indexA === -1) return 1
+            if (indexB === -1) return -1
+            return indexA - indexB
+          })
+          setSchedules(orderedSchedules)
+        } catch (e) {
+          setSchedules(loadedSchedules)
+        }
+      } else {
+        setSchedules(loadedSchedules)
+      }
     }
   }
 
@@ -149,6 +171,11 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
     newSchedules.splice(targetIndex, 0, removed)
 
     setSchedules(newSchedules)
+
+    // Save new order to localStorage
+    const orderArray = newSchedules.map(s => s.id)
+    localStorage.setItem('scheduleOrder', JSON.stringify(orderArray))
+
     setDraggedSchedule(null)
   }
 
@@ -172,21 +199,25 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
   }
 
   const getCategoryColor = (category?: string) => {
+    if (category?.startsWith('기타-')) {
+      return 'bg-muted/50 text-muted-foreground dark:bg-muted dark:text-foreground border border-border'
+    }
     switch (category) {
       case 'develop': return 'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary border border-primary/30'
       case 'reflect': return 'bg-accent/20 text-accent-foreground dark:bg-accent/30 dark:text-accent-foreground border border-accent/30'
       case 'inspection': return 'bg-secondary/30 text-secondary-foreground dark:bg-secondary/40 dark:text-secondary-foreground border border-secondary/40'
-      case 'ex': return 'bg-muted/50 text-muted-foreground dark:bg-muted dark:text-foreground border border-border'
       default: return 'bg-muted/50 text-muted-foreground dark:bg-muted dark:text-foreground border border-border'
     }
   }
 
   const getCategoryLabel = (category?: string) => {
+    if (category?.startsWith('기타-')) {
+      return category
+    }
     switch (category) {
       case 'develop': return '개발/수정'
       case 'reflect': return '운영 반영'
       case 'inspection': return '서비스 점검'
-      case 'ex': return '기타'
       default: return category
     }
   }
@@ -195,7 +226,8 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
     { id: null, name: '전체', icon: List, count: schedules.length },
     { id: 'develop', name: '개발/수정', icon: CodeXml, count: schedules.filter(s => s.category === 'develop').length },
     { id: 'reflect', name: '운영 반영', icon: Send, count: schedules.filter(s => s.category === 'reflect').length },
-    { id: 'inspection', name: '서비스 점검', icon: BadgeCheck, count: schedules.filter(s => s.category === 'inspection').length }
+    { id: 'inspection', name: '서비스 점검', icon: BadgeCheck, count: schedules.filter(s => s.category === 'inspection').length },
+    { id: 'ex', name: '기타', icon: MoreHorizontal, count: schedules.filter(s => s.category?.startsWith('기타-')).length }
   ]
 
   const getCategoryBadgeColor = (categoryId: string | null, isSelected: boolean) => {
@@ -204,6 +236,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
         case 'develop': return 'bg-primary text-primary-foreground hover:bg-primary/90'
         case 'reflect': return 'bg-accent text-accent-foreground hover:bg-accent/90'
         case 'inspection': return 'bg-secondary text-secondary-foreground hover:bg-secondary/90'
+        case 'ex': return 'bg-muted text-foreground hover:bg-muted/90'
         default: return 'bg-foreground text-background hover:bg-foreground/90'
       }
     } else {
@@ -211,13 +244,16 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
         case 'develop': return 'bg-primary/10 text-primary hover:bg-primary/20'
         case 'reflect': return 'bg-accent/10 text-accent-foreground hover:bg-accent/20'
         case 'inspection': return 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+        case 'ex': return 'bg-muted/50 text-muted-foreground hover:bg-muted/70'
         default: return 'bg-muted text-muted-foreground hover:bg-muted/80'
       }
     }
   }
 
   let filteredSchedules = selectedCategory
-    ? schedules.filter(schedule => schedule.category === selectedCategory)
+    ? selectedCategory === 'ex'
+      ? schedules.filter(schedule => schedule.category?.startsWith('기타-'))
+      : schedules.filter(schedule => schedule.category === selectedCategory)
     : schedules
 
   // Sort by deadline (dueDate) if enabled

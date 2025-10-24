@@ -25,7 +25,7 @@ export function MemoAdd({ open, onOpenChange, onAddMemo, editingMemo }: MemoAddP
     content: editingMemo?.content || '',
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[300px] p-4'
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] p-4'
       }
     }
   })

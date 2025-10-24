@@ -401,6 +401,103 @@ body {
   --shadow-2xl: 2px 2px 4px 0px hsl(255 86% 66% / 0.50);
 }
 
+/* Soft Pink Theme - Pastel Pink */
+:root.theme-soft-pink {
+  --background: 340 55% 98%;
+  --foreground: 340 20% 20%;
+  --card: 340 50% 99%;
+  --card-foreground: 340 20% 20%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 340 20% 20%;
+  --primary: 340 75% 70%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 340 40% 95%;
+  --secondary-foreground: 340 25% 25%;
+  --muted: 340 35% 96%;
+  --muted-foreground: 340 10% 50%;
+  --accent: 345 60% 90%;
+  --accent-foreground: 340 25% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 340 30% 88%;
+  --input: 340 30% 88%;
+  --ring: 340 75% 70%;
+  --chart-1: 340 75% 70%;
+  --chart-2: 345 70% 75%;
+  --chart-3: 335 70% 65%;
+  --chart-4: 330 60% 60%;
+  --chart-5: 350 65% 68%;
+  --sidebar: 340 35% 96%;
+  --sidebar-foreground: 340 20% 20%;
+  --sidebar-primary: 340 75% 70%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 345 60% 90%;
+  --sidebar-accent-foreground: 340 25% 25%;
+  --sidebar-border: 340 30% 88%;
+  --sidebar-ring: 340 75% 70%;
+  --font-sans: Inter, sans-serif;
+  --font-serif: Merriweather, serif;
+  --font-mono: JetBrains Mono, monospace;
+  --radius: 0.5rem;
+  --shadow-2xs: 0px 2px 4px 0px hsl(340 60% 70% / 0.08);
+  --shadow-xs: 0px 2px 4px 0px hsl(340 60% 70% / 0.08);
+  --shadow-sm: 0px 2px 4px 0px hsl(340 60% 70% / 0.12), 0px 1px 2px -1px hsl(340 60% 70% / 0.12);
+  --shadow: 0px 2px 4px 0px hsl(340 60% 70% / 0.12), 0px 1px 2px -1px hsl(340 60% 70% / 0.12);
+  --shadow-md: 0px 2px 4px 0px hsl(340 60% 70% / 0.12), 0px 2px 4px -1px hsl(340 60% 70% / 0.12);
+  --shadow-lg: 0px 2px 4px 0px hsl(340 60% 70% / 0.12), 0px 4px 6px -1px hsl(340 60% 70% / 0.12);
+  --shadow-xl: 0px 2px 4px 0px hsl(340 60% 70% / 0.12), 0px 8px 10px -1px hsl(340 60% 70% / 0.12);
+  --shadow-2xl: 0px 2px 4px 0px hsl(340 60% 70% / 0.30);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+:root.theme-soft-pink.dark {
+  --background: 340 25% 12%;
+  --foreground: 340 40% 92%;
+  --card: 340 22% 18%;
+  --card-foreground: 340 40% 92%;
+  --popover: 340 22% 18%;
+  --popover-foreground: 340 40% 92%;
+  --primary: 340 70% 65%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 340 20% 22%;
+  --secondary-foreground: 340 40% 92%;
+  --muted: 340 18% 20%;
+  --muted-foreground: 340 15% 65%;
+  --accent: 340 30% 30%;
+  --accent-foreground: 340 40% 92%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 340 40% 92%;
+  --border: 340 20% 25%;
+  --input: 340 20% 25%;
+  --ring: 340 70% 65%;
+  --chart-1: 340 70% 65%;
+  --chart-2: 345 65% 70%;
+  --chart-3: 335 65% 60%;
+  --chart-4: 330 55% 55%;
+  --chart-5: 350 60% 63%;
+  --sidebar: 340 22% 15%;
+  --sidebar-foreground: 340 40% 92%;
+  --sidebar-primary: 340 70% 65%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 340 30% 30%;
+  --sidebar-accent-foreground: 340 40% 92%;
+  --sidebar-border: 340 20% 25%;
+  --sidebar-ring: 340 70% 65%;
+  --font-sans: Inter, sans-serif;
+  --font-serif: Merriweather, serif;
+  --font-mono: JetBrains Mono, monospace;
+  --radius: 0.5rem;
+  --shadow-2xs: 0px 2px 4px 0px hsl(0 0% 0% / 0.15);
+  --shadow-xs: 0px 2px 4px 0px hsl(0 0% 0% / 0.15);
+  --shadow-sm: 0px 2px 4px 0px hsl(0 0% 0% / 0.25), 0px 1px 2px -1px hsl(0 0% 0% / 0.25);
+  --shadow: 0px 2px 4px 0px hsl(0 0% 0% / 0.25), 0px 1px 2px -1px hsl(0 0% 0% / 0.25);
+  --shadow-md: 0px 2px 4px 0px hsl(0 0% 0% / 0.25), 0px 2px 4px -1px hsl(0 0% 0% / 0.25);
+  --shadow-lg: 0px 2px 4px 0px hsl(0 0% 0% / 0.25), 0px 4px 6px -1px hsl(0 0% 0% / 0.25);
+  --shadow-xl: 0px 2px 4px 0px hsl(0 0% 0% / 0.25), 0px 8px 10px -1px hsl(0 0% 0% / 0.25);
+  --shadow-2xl: 0px 2px 4px 0px hsl(0 0% 0% / 0.50);
+}
+
 /* Twitter Theme */
 :root.theme-twitter {
   --background: 203 100% 97%;
