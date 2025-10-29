@@ -3,7 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { initDatabase, closeDatabase } from './database'
-import { registerIpcHandlers } from './ipcHandlers'
+import { registerIpcHandlers, setupAllScheduleNotifications } from './ipcHandlers'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -77,6 +77,9 @@ app.whenReady().then(() => {
   if (mainWindow) {
     registerIpcHandlers(mainWindow)
   }
+
+  // Setup schedule notification timers for all existing schedules
+  setupAllScheduleNotifications()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

@@ -19,9 +19,15 @@ interface ScheduleAddProps {
 }
 
 export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule }: ScheduleAddProps) {
+  const now = new Date()
+  const currentHour = now.getHours().toString().padStart(2, '0')
+  const currentMinute = (Math.round(now.getMinutes() / 5) * 5).toString().padStart(2, '0')
+
   const [newSchedule, setNewSchedule] = useState('')
   const [clientName, setClientName] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [selectedHour, setSelectedHour] = useState<string>(currentHour)
+  const [selectedMinute, setSelectedMinute] = useState<string>(currentMinute)
   const [newScheduleCategory, setNewScheduleCategory] = useState<string | undefined>(undefined)
   const [customCategory, setCustomCategory] = useState('')
   const [webData, setWebData] = useState<boolean>(false)
@@ -32,7 +38,14 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
     if (editingSchedule) {
       setNewSchedule(editingSchedule.text)
       setClientName(editingSchedule.clientName || '')
-      setSelectedDate(editingSchedule.dueDate ? new Date(editingSchedule.dueDate) : new Date())
+
+      const dateObj = editingSchedule.dueDate ? new Date(editingSchedule.dueDate) : new Date()
+      setSelectedDate(dateObj)
+      setSelectedHour(dateObj.getHours().toString().padStart(2, '0'))
+      // 분을 5분 단위로 반올림
+      const minutes = dateObj.getMinutes()
+      const roundedMinutes = Math.round(minutes / 5) * 5
+      setSelectedMinute(roundedMinutes.toString().padStart(2, '0'))
 
       // Handle custom category (기타-xxx)
       if (editingSchedule.category?.startsWith('기타-')) {
@@ -45,9 +58,13 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
 
       setWebData(Boolean(editingSchedule.webData))
     } else {
+      // 새 스케줄 추가 시 현재 시간으로 초기화
+      const currentTime = new Date()
       setNewSchedule('')
       setClientName('')
       setSelectedDate(new Date())
+      setSelectedHour(currentTime.getHours().toString().padStart(2, '0'))
+      setSelectedMinute((Math.round(currentTime.getMinutes() / 5) * 5).toString().padStart(2, '0'))
       setNewScheduleCategory(undefined)
       setCustomCategory('')
       setWebData(false)
@@ -85,18 +102,25 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
       ? `기타-${customCategory.trim()}`
       : newScheduleCategory
 
+    // Combine date and time
+    const finalDate = new Date(selectedDate)
+    finalDate.setHours(parseInt(selectedHour), parseInt(selectedMinute), 0, 0)
+
     onAddSchedule({
       text: newSchedule.trim(),
       category: finalCategory,
-      dueDate: selectedDate,
+      dueDate: finalDate,
       clientName: clientName.trim(),
       webData: newScheduleCategory === 'reflect' ? webData : undefined
     })
 
-    // Reset form
+    // Reset form with current time
+    const resetTime = new Date()
     setNewSchedule('')
     setClientName('')
     setSelectedDate(new Date())
+    setSelectedHour(resetTime.getHours().toString().padStart(2, '0'))
+    setSelectedMinute((Math.round(resetTime.getMinutes() / 5) * 5).toString().padStart(2, '0'))
     setNewScheduleCategory(undefined)
     setCustomCategory('')
     setWebData(false)
@@ -105,9 +129,12 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
   }
 
   const handleCancel = () => {
+    const resetTime = new Date()
     setNewSchedule('')
     setClientName('')
     setSelectedDate(new Date())
+    setSelectedHour(resetTime.getHours().toString().padStart(2, '0'))
+    setSelectedMinute((Math.round(resetTime.getMinutes() / 5) * 5).toString().padStart(2, '0'))
     setNewScheduleCategory(undefined)
     setCustomCategory('')
     setWebData(false)
@@ -237,6 +264,36 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
                 />
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">시간</label>
+            <div className="flex gap-2">
+              <Select value={selectedHour} onValueChange={setSelectedHour}>
+                <SelectTrigger className="border-border focus:border-ring">
+                  <SelectValue placeholder="시" />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={5}>
+                  {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')).map((hour) => (
+                    <SelectItem key={hour} value={hour}>
+                      {hour}시
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedMinute} onValueChange={setSelectedMinute}>
+                <SelectTrigger className="border-border focus:border-ring">
+                  <SelectValue placeholder="분" />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={5}>
+                  {Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0')).map((minute) => (
+                    <SelectItem key={minute} value={minute}>
+                      {minute}분
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">
