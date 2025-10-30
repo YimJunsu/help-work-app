@@ -21,7 +21,7 @@ import { Dashboard } from "./pages/Dashboard"
 import Memo from "./pages/Memo"
 import { MiniGame } from "./pages/MiniGame"
 import { UserInfo } from "./pages/UserInfo"
-import { CheckSquare, FileText, List, Palette, Moon, Sun, Download, ListTodo, Gamepad2, User, Calendar } from "lucide-react"
+import { CheckSquare, FileText, List, Palette, Moon, Sun, Download, ListTodo, Gamepad2, User, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset } from "lucide-react"
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ThemeSelector } from "./pages/ThemeSelector"
@@ -343,7 +343,7 @@ function App(): React.JSX.Element {
               {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
           </header>
-          <main className="flex-1 p-4">
+          <main className="flex-1 p-4 overflow-auto">
             {currentPage === 'dashboard' ? (
               <Dashboard onNavigate={setCurrentPage} />
             ) : currentPage === 'todo' ? (
@@ -360,6 +360,46 @@ function App(): React.JSX.Element {
               <UserInfo />
             ) : null}
           </main>
+
+          {/* 고정 링크 버튼 */}
+          <footer className="sticky bottom-0 z-10 flex h-14 shrink-0 items-center justify-center gap-3 border-t px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://unipost.hanbiro.net/ngw/app/#/', '_blank')}
+              className="bg-background hover:bg-accent transition-colors"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Mail
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://114.unipost.co.kr/home.uni', '_blank')}
+              className="bg-background hover:bg-accent transition-colors"
+            >
+              <Headset className="w-4 h-4 mr-2" />
+              Support
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://helper.unipost.co.kr/', '_blank')}
+              className="bg-background hover:bg-accent transition-colors"
+            >
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Helper
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://docs.google.com/spreadsheets/d/1BCPNsO72naoZqlz1dX8RhZrdnQrhbHF8wWJ0pGFzj1o/edit?gid=1322866646#gid=1322866646', '_blank')}
+              className="bg-background hover:bg-accent transition-colors"
+            >
+              <SheetIcon className="w-4 h-4 mr-2" />
+              Sheet
+            </Button>
+          </footer>
         </SidebarInset>
       </div>
 

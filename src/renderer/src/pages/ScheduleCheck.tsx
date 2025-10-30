@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Checkbox } from '../components/ui/checkbox'
 import { Badge } from '../components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
-import { Plus, Trash2, Calendar as CalendarIcon, List as ListIcon, CodeXml, Send, BadgeCheck, CheckCheck, Pencil, AlertCircle, MoreHorizontal, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, Calendar as CalendarIcon, List as ListIcon, CodeXml, Send, BadgeCheck, CheckCheck, Pencil, AlertCircle, MoreHorizontal, CalendarDays, ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import { format, differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, getDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ScheduleAdd } from './ScheduleAdd'
@@ -230,6 +230,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
       case 'develop': return 'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary border border-primary/30'
       case 'reflect': return 'bg-accent/20 text-accent-foreground dark:bg-accent/30 dark:text-accent-foreground border border-accent/30'
       case 'inspection': return 'bg-secondary/30 text-secondary-foreground dark:bg-secondary/40 dark:text-secondary-foreground border border-secondary/40'
+      case 'guide': return 'bg-sky-100/50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 border border-sky-300/30'
       default: return 'bg-muted/50 text-muted-foreground dark:bg-muted dark:text-foreground border border-border'
     }
   }
@@ -242,6 +243,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
       case 'develop': return '개발/수정'
       case 'reflect': return '운영 반영'
       case 'inspection': return '서비스 점검'
+      case 'guide': return '사용/원인안내'
       default: return category
     }
   }
@@ -251,6 +253,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
     { id: 'develop', name: '개발/수정', icon: CodeXml, count: schedules.filter(s => s.category === 'develop').length },
     { id: 'reflect', name: '운영 반영', icon: Send, count: schedules.filter(s => s.category === 'reflect').length },
     { id: 'inspection', name: '서비스 점검', icon: BadgeCheck, count: schedules.filter(s => s.category === 'inspection').length },
+    { id: 'guide', name: '사용/원인안내', icon: Info, count: schedules.filter(s => s.category === 'guide').length },
     { id: 'ex', name: '기타', icon: MoreHorizontal, count: schedules.filter(s => s.category?.startsWith('기타-')).length }
   ]
 
@@ -260,6 +263,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
         case 'develop': return 'bg-blue-200 text-blue-800 hover:bg-blue-300 dark:bg-blue-800 dark:text-blue-100 dark:hover:bg-blue-700'
         case 'reflect': return 'bg-green-200 text-green-800 hover:bg-green-300 dark:bg-green-800 dark:text-green-100 dark:hover:bg-green-700'
         case 'inspection': return 'bg-purple-200 text-purple-800 hover:bg-purple-300 dark:bg-purple-800 dark:text-purple-100 dark:hover:bg-purple-700'
+        case 'guide': return 'bg-sky-200 text-sky-800 hover:bg-sky-300 dark:bg-sky-800 dark:text-sky-100 dark:hover:bg-sky-700'
         case 'ex': return 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300 dark:bg-yellow-800 dark:text-yellow-100 dark:hover:bg-yellow-700'
         default: return 'bg-foreground text-background hover:bg-foreground/90'
       }
@@ -268,6 +272,7 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
         case 'develop': return 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60'
         case 'reflect': return 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60'
         case 'inspection': return 'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/60'
+        case 'guide': return 'bg-sky-100 text-sky-700 hover:bg-sky-200 dark:bg-sky-900/40 dark:text-sky-300 dark:hover:bg-sky-900/60'
         case 'ex': return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:hover:bg-yellow-900/60'
         default: return 'bg-muted text-muted-foreground hover:bg-muted/80'
       }
@@ -326,6 +331,8 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
         return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
       case 'inspection':
         return 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+      case 'guide':
+        return 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
       default:
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300'
     }

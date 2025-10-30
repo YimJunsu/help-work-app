@@ -167,7 +167,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
           <div className="space-y-2">
             <label className="text-sm font-medium">고객사명</label>
             <Input
-              placeholder="고객사명을 입력하세요"
+              placeholder="고객사명을 입력하세요."
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               className="border-border focus:border-ring"
@@ -177,7 +177,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
           <div className="space-y-2">
             <label className="text-sm font-medium">내용</label>
             <Input
-              placeholder="일정 내용을 입력하세요"
+              placeholder="내용을 입력하세요."
               value={newSchedule}
               onChange={(e) => {
                 setNewSchedule(e.target.value);
@@ -202,6 +202,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
                 <SelectItem value="develop">개발/수정</SelectItem>
                 <SelectItem value="reflect">운영 반영</SelectItem>
                 <SelectItem value="inspection">서비스 점검</SelectItem>
+                <SelectItem value="guide">사용/원인안내</SelectItem>
                 <SelectItem value="ex">기타</SelectItem>
               </SelectContent>
             </Select>
@@ -267,7 +268,7 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">시간</label>
+            <label className="text-sm font-medium">Time</label>
             <div className="flex gap-2">
               <Select value={selectedHour} onValueChange={setSelectedHour}>
                 <SelectTrigger className="border-border focus:border-ring">

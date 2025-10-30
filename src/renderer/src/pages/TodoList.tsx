@@ -27,7 +27,11 @@ export function TodoList({ onDialogChange }: TodoListProps) {
     const savedTodos = localStorage.getItem('dailyTodos')
     if (savedTodos) {
       const parsedTodos = JSON.parse(savedTodos)
-      // Convert date strings back to Date objects and filter today's todos
+      // Convert date strings back to Date objects and filter todos from the last 3 days
+      const threeDaysAgo = new Date()
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+      threeDaysAgo.setHours(0, 0, 0, 0)
+
       return parsedTodos
         .map((todo: any) => ({
           ...todo,
@@ -36,7 +40,7 @@ export function TodoList({ onDialogChange }: TodoListProps) {
         .filter((todo: Todo) => {
           const todoDate = new Date(todo.date)
           todoDate.setHours(0, 0, 0, 0)
-          return todoDate.getTime() === today.getTime()
+          return todoDate.getTime() >= threeDaysAgo.getTime()
         })
     }
     return []
