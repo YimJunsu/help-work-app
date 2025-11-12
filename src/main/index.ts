@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,12 +6,13 @@ import { initDatabase, closeDatabase } from './database'
 import { registerIpcHandlers, setupAllScheduleNotifications } from './ipcHandlers'
 
 let mainWindow: BrowserWindow | null = null
+let isQuitting = false
 
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1000,
-    height: 700,
+    height: 800,
     show: false,
     autoHideMenuBar: true,
     icon: icon,
@@ -23,6 +24,14 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+  })
+
+  // 창 닫기 버튼을 눌렀을 때 최소화로 변경
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault()
+      mainWindow?.hide()
+    }
   })
 
   // DevTools 콘솔 오류 무시 설정
@@ -80,6 +89,12 @@ app.whenReady().then(() => {
 
   // Setup schedule notification timers for all existing schedules
   setupAllScheduleNotifications()
+
+  // 앱 종료 IPC 핸들러
+  ipcMain.on('quit-app', () => {
+    isQuitting = true
+    app.quit()
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

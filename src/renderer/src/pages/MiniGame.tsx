@@ -129,8 +129,8 @@ export function MiniGame() {
   const [gameOver, setGameOver] = useState(false)
   const dropIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 게임 속도 계산
-  const getDropSpeed = () => Math.max(100, 1000 - (level - 1) * 100)
+  // 게임 속도 계산 (더 빠른 속도로 조정)
+  const getDropSpeed = () => Math.max(50, 800 - (level - 1) * 150)
 
   // 피스 이동
   const movePiece = useCallback((direction: 'left' | 'right' | 'down') => {
@@ -306,13 +306,12 @@ export function MiniGame() {
   const displayBoard = renderBoard()
 
   return (
-    <div className="w-full h-full flex flex-col relative overflow-hidden bg-gradient-to-br from-[#1e1e2f] to-[#111]">
-      <Card className="flex-1 border-0 bg-card/90 backdrop-blur-sm">
+    <div className="w-full h-full flex flex-col">
+      <Card className="flex-1 border-0 bg-card">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between min-h-[60px]">
             <div className="flex flex-col justify-center">
               <CardTitle className="text-2xl font-bold text-card-foreground leading-tight">
-                <Gamepad2 className="inline-block w-6 h-6 mr-2" />
                 테트리스
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">

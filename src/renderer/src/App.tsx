@@ -14,20 +14,22 @@ import {
   SidebarTrigger,
   SidebarSeparator,
   SidebarFooter,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "./components/ui/sidebar"
 import { ScheduleCheck } from "./pages/ScheduleCheck"
 import { TodoList } from "./pages/TodoList"
 import { Dashboard } from "./pages/Dashboard"
 import Memo from "./pages/Memo"
 import { MiniGame } from "./pages/MiniGame"
-import { UserInfo } from "./pages/UserInfo"
-import { CheckSquare, FileText, List, Palette, Moon, Sun, Download, ListTodo, Gamepad2, User, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset } from "lucide-react"
+import { AnimalRace } from "./pages/AnimalRace"
+import { Settings } from "./pages/Settings"
+import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown, Clover } from "lucide-react"
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ThemeSelector } from "./pages/ThemeSelector"
-import { FetchSettings } from "./pages/FetchSettings"
 import { Button } from "./components/ui/button"
-import { Badge } from "./components/ui/badge"
 import { toggleDarkMode, getDarkMode, applyTheme, applyShadcnTheme, tweakCNThemes } from "./lib/theme"
 
 function App(): React.JSX.Element {
@@ -36,12 +38,14 @@ function App(): React.JSX.Element {
     return localStorage.getItem('selected-theme') || 'shadcn'
   })
 
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'fetch' | 'minigame' | 'userinfo'>('dashboard')
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'minigame' | 'animalrace' | 'fetch' | 'userinfo'>('dashboard')
   const [showThemeDialog, setShowThemeDialog] = useState(false)
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false)
   const [hasTodoDialog, setHasTodoDialog] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(() => getDarkMode())
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
+  const [isGameMenuOpen, setIsGameMenuOpen] = useState(false)
 
   // 초기 렌더 시 localStorage에 저장된 테마를 실제로 적용
   useEffect(() => {
@@ -193,12 +197,33 @@ function App(): React.JSX.Element {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      isActive={currentPage === 'minigame'}
-                      onClick={() => setCurrentPage('minigame')}
+                      isActive={currentPage === 'minigame' || currentPage === 'animalrace'}
+                      onClick={() => setIsGameMenuOpen(!isGameMenuOpen)}
                     >
                       <Gamepad2 />
-                      <span>Mini Game</span>
+                      <span>쉬어가는시간</span>
+                      <ChevronDown className={`ml-auto transition-transform ${isGameMenuOpen ? 'rotate-180' : ''}`} />
                     </SidebarMenuButton>
+                    {isGameMenuOpen && (
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            isActive={currentPage === 'minigame'}
+                            onClick={() => setCurrentPage('minigame')}
+                          >
+                            <span>테트리스</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            isActive={currentPage === 'animalrace'}
+                            onClick={() => setCurrentPage('animalrace')}
+                          >
+                            <span>동물달리기 내기</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    )}
                   </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -208,44 +233,22 @@ function App(): React.JSX.Element {
           <SidebarFooter>
             <SidebarSeparator />
             <SidebarGroup>
-              <SidebarGroupLabel>Settings</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setShowThemeDialog(true)}>
-                      <Palette />
-                      <span>Theme</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={currentPage === 'fetch'}
-                      onClick={() => setCurrentPage('fetch')}
-                    >
-                      <Download />
+                    <SidebarMenuButton onClick={() => setShowSettingsDialog(true)}>
+                      <SettingsIcon />
                       <span className="flex items-center gap-2">
-                        Fetch
+                        Settings
                         {updateAvailable && (
-                          <Badge className="bg-red-500 text-white px-1.5 py-0 text-xs h-4 min-w-4 rounded-full flex items-center justify-center">
-                            !
-                          </Badge>
+                          <span className="ml-auto w-2 h-2 bg-red-500 rounded-full"></span>
                         )}
                       </span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={currentPage === 'userinfo'}
-                      onClick={() => setCurrentPage('userinfo')}
-                    >
-                      <User />
-                      <span>사용자 정보</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-            <SidebarSeparator />
             <div className="px-4 py-3 space-y-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
@@ -352,17 +355,15 @@ function App(): React.JSX.Element {
               <ScheduleCheck onDialogChange={setHasTodoDialog} />
             ) : currentPage === 'memo' ? (
               <Memo onDialogChange={setHasTodoDialog} />
-            ) : currentPage === 'fetch' ? (
-              <FetchSettings />
             ) : currentPage === 'minigame' ? (
               <MiniGame />
-            ) : currentPage === 'userinfo' ? (
-              <UserInfo />
+            ) : currentPage === 'animalrace' ? (
+              <AnimalRace />
             ) : null}
           </main>
 
           {/* 고정 링크 버튼 */}
-          <footer className="sticky bottom-0 z-10 flex h-14 shrink-0 items-center justify-center gap-3 border-t px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <footer className="sticky bottom-0 z-10 flex h-14 shrink-0 items-center justify-center gap-2 border-t px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <Button
               variant="outline"
               size="sm"
@@ -399,9 +400,26 @@ function App(): React.JSX.Element {
               <SheetIcon className="w-4 h-4 mr-2" />
               Sheet
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://lotto-mate.kr/', '_blank')}
+              className="bg-background hover:bg-accent transition-colors"
+            >
+              <Clover className="w-4 h-4 mr-2" />
+              Lotto
+            </Button>
           </footer>
         </SidebarInset>
       </div>
+
+      <Settings
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
+        updateAvailable={updateAvailable}
+        currentTheme={currentTheme}
+        onThemeChange={handleThemeChange}
+      />
 
       <ThemeSelector
         open={showThemeDialog}
