@@ -7,8 +7,7 @@ import { useUserInfo } from '../hooks/useUserInfo'
 import { getGreetingMessage } from '../utils/greetingUtils'
 import { WelcomeHeader, TodoStatsChart, UpcomingSchedules } from '../components/dashboard'
 
-interface DashboardProps {
-  onNavigate?: (page: 'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'minigame' | 'animalrace') => void
+interface DashboardProps { onNavigate?: (page: | 'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'minigame' | 'animalrace' | 'fetch' | 'userinfo') => void
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {

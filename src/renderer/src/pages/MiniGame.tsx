@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { Gamepad2, RotateCw, ArrowLeft, ArrowRight, ArrowDown, Play, Pause } from 'lucide-react'
+import { RotateCw, ArrowLeft, ArrowRight, ArrowDown, Play, Pause } from 'lucide-react'
 
 // 테트리스 보드 크기
 const BOARD_WIDTH = 10
