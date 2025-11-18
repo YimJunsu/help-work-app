@@ -114,7 +114,7 @@ function App(): React.JSX.Element {
     }
   }, [])
 
-  // ` 키로 테마 다이얼로그 열기
+  // ` 키로 테마 다이얼로그 열기, ESC 키로 창 최소화
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === '`') {
@@ -127,12 +127,20 @@ function App(): React.JSX.Element {
           event.preventDefault()
           setShowThemeDialog(true)
         }
+      } else if (event.key === 'Escape') {
+        // ESC 키로 창 최소화
+        if (!hasTodoDialog && !showThemeDialog && !showSettingsDialog) {
+          event.preventDefault()
+          if (window.electron) {
+            window.electron.ipcRenderer.send('minimize-window')
+          }
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [hasTodoDialog, showThemeDialog])
+  }, [hasTodoDialog, showThemeDialog, showSettingsDialog])
 
   const handleThemeDialogChange = (open: boolean) => {
     setShowThemeDialog(open)
@@ -201,8 +209,8 @@ function App(): React.JSX.Element {
                       onClick={() => setIsGameMenuOpen(!isGameMenuOpen)}
                     >
                       <Gamepad2 />
-                      <span>쉬어가는시간</span>
-                      <ChevronDown className={`ml-auto transition-transform ${isGameMenuOpen ? 'rotate-180' : ''}`} />
+                      <span>RestTime</span>
+                      <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${isGameMenuOpen ? 'rotate-180' : ''}`} />
                     </SidebarMenuButton>
                     {isGameMenuOpen && (
                       <SidebarMenuSub>
@@ -219,7 +227,14 @@ function App(): React.JSX.Element {
                             isActive={currentPage === 'animalrace'}
                             onClick={() => setCurrentPage('animalrace')}
                           >
-                            <span>동물달리기 내기</span>
+                            <span>사다리타기</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => window.open("https://extra-yolanthe-junsu-d39ff72a.koyeb.app/", "_blank")}
+                          >
+                            <span>멍~때리기</span>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>

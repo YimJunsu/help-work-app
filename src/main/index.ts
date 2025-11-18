@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,7 +6,47 @@ import { initDatabase, closeDatabase } from './database'
 import { registerIpcHandlers, setupAllScheduleNotifications } from './ipcHandlers'
 
 let mainWindow: BrowserWindow | null = null
+let splashWindow: BrowserWindow | null = null
 let isQuitting = false
+
+function createSplashWindow(): void {
+  splashWindow = new BrowserWindow({
+    width: 600,
+    height: 400,
+    transparent: false,
+    frame: false,
+    alwaysOnTop: true,
+    center: true,
+    skipTaskbar: true,
+    resizable: false,
+    icon: icon,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f172a' : '#ffffff',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: join(__dirname, '../preload/index.js')
+    }
+  })
+
+  // 로딩 화면 HTML 파일 로드
+  if (is.dev) {
+    splashWindow.loadFile(join(__dirname, '../../resources/splash.html'))
+  } else {
+    splashWindow.loadFile(join(process.resourcesPath, 'splash.html'))
+  }
+
+  // 로딩 창이 준비되면 다크모드 상태 전송
+  splashWindow.webContents.on('did-finish-load', () => {
+    const isDarkMode = nativeTheme.shouldUseDarkColors
+    splashWindow?.webContents.send('theme-changed', isDarkMode)
+  })
+
+  // 다크모드 변경 감지
+  nativeTheme.on('updated', () => {
+    const isDarkMode = nativeTheme.shouldUseDarkColors
+    splashWindow?.webContents.send('theme-changed', isDarkMode)
+  })
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -16,6 +56,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     icon: icon,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f172a' : '#ffffff',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -23,7 +64,15 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow?.show()
+    // 최소 1.5초간 로딩 창 표시를 위한 타이머
+    setTimeout(() => {
+      // 로딩 창 닫기
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close()
+        splashWindow = null
+      }
+      mainWindow?.show()
+    }, 1500)
   })
 
   // 창 닫기 버튼을 눌렀을 때 최소화로 변경
@@ -62,6 +111,10 @@ function createWindow(): void {
   }
 }
 
+// GPU 캐시 오류 방지를 위한 설정
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
+app.commandLine.appendSwitch('disable-gpu-program-cache')
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -79,7 +132,10 @@ app.whenReady().then(() => {
   // Initialize database
   initDatabase()
 
-  // Create window first
+  // Create splash window first
+  createSplashWindow()
+
+  // Create main window
   createWindow()
 
   // Register all IPC handlers
@@ -94,6 +150,13 @@ app.whenReady().then(() => {
   ipcMain.on('quit-app', () => {
     isQuitting = true
     app.quit()
+  })
+
+  // 창 최소화 IPC 핸들러
+  ipcMain.on('minimize-window', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide()
+    }
   })
 
   app.on('activate', function () {

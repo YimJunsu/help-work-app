@@ -6,7 +6,7 @@ import { RotateCw, ArrowLeft, ArrowRight, ArrowDown, Play, Pause } from 'lucide-
 // 테트리스 보드 크기
 const BOARD_WIDTH = 10
 const BOARD_HEIGHT = 20
-const CELL_SIZE = 30
+const CELL_SIZE = 24
 
 // 테트로미노 모양 정의
 const TETROMINOS = {
