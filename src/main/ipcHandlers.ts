@@ -1,4 +1,5 @@
-import { ipcMain, BrowserWindow, Notification } from 'electron'
+import { ipcMain, BrowserWindow, screen } from 'electron'
+import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import {
@@ -25,6 +26,9 @@ const notifiedSchedules = new Set<number>()
 // 스케줄별 타이머를 저장하는 Map
 const scheduleTimers = new Map<number, NodeJS.Timeout>()
 
+// 현재 표시 중인 알림 창들
+const notificationWindows: BrowserWindow[] = []
+
 /**
  * 모든 IPC 핸들러를 등록하는 함수
  */
@@ -46,6 +50,18 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Auto-updater IPC handlers
   registerAutoUpdaterHandlers(mainWindow)
+
+  // Notification handlers
+  ipcMain.on('close-notification', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (win) {
+      const index = notificationWindows.indexOf(win)
+      if (index > -1) {
+        notificationWindows.splice(index, 1)
+      }
+      win.close()
+    }
+  })
 }
 
 /**
@@ -248,15 +264,70 @@ function registerAutoUpdaterHandlers(mainWindow: BrowserWindow): void {
 function showScheduleNotification(schedule: { id: number; text: string; clientName?: string | null }): void {
   if (notifiedSchedules.has(schedule.id)) return
 
-  const notification = new Notification({
-    title: '스케줄 알림',
-    body: `${schedule.clientName ? `[${schedule.clientName}] ` : ''}${schedule.text}`,
-    silent: false,
-    urgency: 'critical',
-    timeoutType: 'never'
+  // 화면 정보 가져오기
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width, height } = primaryDisplay.workAreaSize
+
+  // 알림 창 위치 계산 (우측 하단)
+  const notificationWidth = 380
+  const notificationHeight = 140
+  const margin = 16
+  const x = width - notificationWidth - margin
+  const y = height - notificationHeight - margin - (notificationWindows.length * (notificationHeight + margin))
+
+  // URL 파라미터 생성
+  const params = new URLSearchParams({
+    message: schedule.text,
+    ...(schedule.clientName && { client: schedule.clientName })
   })
 
-  notification.show()
+  // 알림 창 생성
+  const notificationWindow = new BrowserWindow({
+    width: notificationWidth,
+    height: notificationHeight,
+    x: x,
+    y: y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focusable: true,
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  // HTML 파일 로드
+  if (is.dev) {
+    notificationWindow.loadFile(join(__dirname, '../../resources/notification.html'), {
+      search: params.toString()
+    })
+  } else {
+    notificationWindow.loadFile(join(process.resourcesPath, 'notification.html'), {
+      search: params.toString()
+    })
+  }
+
+  // 창이 준비되면 표시
+  notificationWindow.once('ready-to-show', () => {
+    notificationWindow.show()
+  })
+
+  // 창이 닫히면 배열에서 제거
+  notificationWindow.on('closed', () => {
+    const index = notificationWindows.indexOf(notificationWindow)
+    if (index > -1) {
+      notificationWindows.splice(index, 1)
+    }
+  })
+
+  // 배열에 추가
+  notificationWindows.push(notificationWindow)
 
   // 알람 보낸 스케줄로 기록
   notifiedSchedules.add(schedule.id)

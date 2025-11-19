@@ -5,6 +5,9 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   onThemeChange: (callback: (isDark: boolean) => void) => {
     ipcRenderer.on('theme-changed', (_event, isDark) => callback(isDark))
+  },
+  closeNotification: () => {
+    ipcRenderer.send('close-notification')
   }
 }
 

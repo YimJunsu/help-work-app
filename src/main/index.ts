@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeTheme, Tray, Menu, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -7,6 +7,7 @@ import { registerIpcHandlers, setupAllScheduleNotifications } from './ipcHandler
 
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
+let tray: Tray | null = null
 let isQuitting = false
 
 function createSplashWindow(): void {
@@ -111,6 +112,47 @@ function createWindow(): void {
   }
 }
 
+function createTray(): void {
+  tray = new Tray(icon)
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Work Management 열기',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show()
+          mainWindow.focus()
+        }
+      }
+    },
+    {
+      type: 'separator'
+    },
+    {
+      label: '종료',
+      click: () => {
+        isQuitting = true
+        app.quit()
+      }
+    }
+  ])
+
+  tray.setToolTip('Work Management')
+  tray.setContextMenu(contextMenu)
+
+  // 트레이 아이콘 클릭 시 창 표시
+  tray.on('click', () => {
+    if (mainWindow) {
+      if (mainWindow.isVisible()) {
+        mainWindow.hide()
+      } else {
+        mainWindow.show()
+        mainWindow.focus()
+      }
+    }
+  })
+}
+
 // GPU 캐시 오류 방지를 위한 설정
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
 app.commandLine.appendSwitch('disable-gpu-program-cache')
@@ -129,6 +171,15 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  // Geolocation 권한 자동 허용
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    if (permission === 'geolocation') {
+      callback(true) // 위치 정보 권한 허용
+    } else {
+      callback(false)
+    }
+  })
+
   // Initialize database
   initDatabase()
 
@@ -137,6 +188,9 @@ app.whenReady().then(() => {
 
   // Create main window
   createWindow()
+
+  // Create system tray
+  createTray()
 
   // Register all IPC handlers
   if (mainWindow) {

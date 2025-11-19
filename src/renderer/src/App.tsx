@@ -25,7 +25,7 @@ import Memo from "./pages/Memo"
 import { MiniGame } from "./pages/MiniGame"
 import { AnimalRace } from "./pages/AnimalRace"
 import { Settings } from "./pages/Settings"
-import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown, Clover } from "lucide-react"
+import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown, DollarSign } from "lucide-react"
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ThemeSelector } from "./pages/ThemeSelector"
@@ -205,7 +205,6 @@ function App(): React.JSX.Element {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      isActive={currentPage === 'minigame' || currentPage === 'animalrace'}
                       onClick={() => setIsGameMenuOpen(!isGameMenuOpen)}
                     >
                       <Gamepad2 />
@@ -216,25 +215,16 @@ function App(): React.JSX.Element {
                       <SidebarMenuSub>
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton
-                            isActive={currentPage === 'minigame'}
-                            onClick={() => setCurrentPage('minigame')}
-                          >
-                            <span>테트리스</span>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            isActive={currentPage === 'animalrace'}
-                            onClick={() => setCurrentPage('animalrace')}
-                          >
-                            <span>사다리타기</span>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
                             onClick={() => window.open("https://extra-yolanthe-junsu-d39ff72a.koyeb.app/", "_blank")}
                           >
                             <span>멍~때리기</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => window.open("https://lotto-mate.kr/", "_blank")}
+                          >
+                            <span>Lotto</span>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>
@@ -414,15 +404,6 @@ function App(): React.JSX.Element {
             >
               <SheetIcon className="w-4 h-4 mr-2" />
               Sheet
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open('https://lotto-mate.kr/', '_blank')}
-              className="bg-background hover:bg-accent transition-colors"
-            >
-              <Clover className="w-4 h-4 mr-2" />
-              Lotto
             </Button>
           </footer>
         </SidebarInset>

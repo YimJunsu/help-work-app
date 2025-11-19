@@ -84,6 +84,18 @@ export function Settings({ open, onOpenChange, updateAvailable, currentTheme, on
                 </Button>
 
                 <Button
+                  variant={currentPage === 'theme' ? 'secondary' : 'ghost'}
+                  className={cn(
+                    'w-full justify-start',
+                    currentPage === 'theme' && 'bg-secondary'
+                  )}
+                  onClick={handleThemeClick}
+                >
+                  <Palette className="w-4 h-4 mr-2" />
+                  테마
+                </Button>
+
+                <Button
                   variant={currentPage === 'fetch' ? 'secondary' : 'ghost'}
                   className={cn(
                     'w-full justify-start',
@@ -96,18 +108,6 @@ export function Settings({ open, onOpenChange, updateAvailable, currentTheme, on
                   {updateAvailable && (
                     <span className="ml-auto w-2 h-2 bg-red-500 rounded-full"></span>
                   )}
-                </Button>
-
-                <Button
-                  variant={currentPage === 'theme' ? 'secondary' : 'ghost'}
-                  className={cn(
-                    'w-full justify-start',
-                    currentPage === 'theme' && 'bg-secondary'
-                  )}
-                  onClick={handleThemeClick}
-                >
-                  <Palette className="w-4 h-4 mr-2" />
-                  테마
                 </Button>
               </nav>
 
