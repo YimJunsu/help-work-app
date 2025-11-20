@@ -172,7 +172,7 @@ app.whenReady().then(() => {
   })
 
   // Geolocation 권한 자동 허용
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
     if (permission === 'geolocation') {
       callback(true) // 위치 정보 권한 허용
     } else {
