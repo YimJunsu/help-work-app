@@ -25,7 +25,7 @@ import Memo from "./pages/Memo"
 import { MiniGame } from "./pages/MiniGame"
 import { AnimalRace } from "./pages/AnimalRace"
 import { Settings } from "./pages/Settings"
-import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown, DollarSign } from "lucide-react"
+import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown } from "lucide-react"
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ThemeSelector } from "./pages/ThemeSelector"
