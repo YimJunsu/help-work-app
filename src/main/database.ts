@@ -37,7 +37,7 @@ export interface UserInfo {
   updatedAt: string
 }
 
-export function initDatabase(): any {
+export function initDatabase(): Database.Database {
   const userDataPath = app.getPath('userData')
   const dbPath = path.join(userDataPath, 'schedules.db')
 
