@@ -90,13 +90,13 @@ function registerScheduleHandlers(): void {
     return newSchedule
   })
 
-  ipcMain.handle('schedules:update', async (_event, id, updates: {
+  ipcMain.handle('schedules:update', (_event, id, updates: {
     text?: string
     completed?: boolean
     category?: string
     dueDate?: string | null
   }) => {
-    const updatedSchedule = await updateSchedule(id, {
+    const updatedSchedule = updateSchedule(id, {
       text: updates.text,
       completed: updates.completed,
       category: updates.category,
@@ -376,14 +376,14 @@ function scheduleNotification(schedule: { id: number; text: string; dueDate?: st
 /**
  * 모든 스케줄에 대한 알람 타이머 재설정
  */
-export async function setupAllScheduleNotifications(): Promise<void> {
+export function setupAllScheduleNotifications(): void {
   try {
     // 모든 기존 타이머 제거
     scheduleTimers.forEach((timer) => clearTimeout(timer))
     scheduleTimers.clear()
 
     // 모든 스케줄 가져오기
-    const schedules = await getAllSchedules()
+    const schedules = getAllSchedules()
 
     // 각 스케줄에 대해 타이머 설정
     schedules.forEach((schedule) => {
