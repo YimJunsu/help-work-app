@@ -26,23 +26,25 @@ export function ScheduleCalendarView({
   const calendarDays = generateCalendarDays(currentMonth)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Calendar Header */}
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
           size="sm"
           onClick={() => onMonthChange(subMonths(currentMonth, 1))}
+          className="h-8"
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <h3 className="text-lg font-bold">
+        <h3 className="text-base font-bold">
           {format(currentMonth, 'yyyy년 M월', { locale: ko })}
         </h3>
         <Button
           variant="outline"
           size="sm"
           onClick={() => onMonthChange(addMonths(currentMonth, 1))}
+          className="h-8"
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
@@ -54,7 +56,7 @@ export function ScheduleCalendarView({
         {['일', '월', '화', '수', '목', '금', '토'].map((day, i) => (
           <div
             key={day}
-            className={`text-center text-sm font-bold py-2 ${
+            className={`text-center text-xs font-bold py-1.5 ${
               i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-muted-foreground'
             }`}
           >
@@ -72,7 +74,7 @@ export function ScheduleCalendarView({
           return (
             <div
               key={day.toISOString()}
-              className={`min-h-[100px] border border-border rounded-lg p-1 ${
+              className={`min-h-[70px] border border-border rounded-lg p-1 ${
                 isCurrentMonth ? 'bg-card' : 'bg-muted/30'
               } ${isToday ? 'ring-2 ring-primary' : ''}`}
             >
@@ -83,11 +85,11 @@ export function ScheduleCalendarView({
               >
                 {format(day, 'd')}
               </div>
-              <div className="space-y-1">
-                {daySchedules.slice(0, 2).map((schedule) => (
+              <div className="space-y-0.5">
+                {daySchedules.slice(0, 1).map((schedule) => (
                   <div
                     key={schedule.id}
-                    className={`text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-all truncate relative group ${
+                    className={`text-[10px] px-1 py-0.5 rounded cursor-pointer hover:opacity-80 transition-all truncate relative group ${
                       schedule.completed
                         ? 'bg-muted text-muted-foreground line-through'
                         : getCalendarItemColor(schedule.category)
@@ -96,9 +98,9 @@ export function ScheduleCalendarView({
                   >
                     <div
                       onClick={() => onScheduleClick(schedule)}
-                      className="pr-5"
+                      className="pr-4"
                     >
-                      {schedule.clientName ? `${schedule.clientName.substring(0, 8)}...` : schedule.text.substring(0, 10)}
+                      {schedule.clientName ? `${schedule.clientName.substring(0, 7)}` : schedule.text.substring(0, 9)}
                     </div>
                     <button
                       onClick={(e) => {
@@ -113,10 +115,10 @@ export function ScheduleCalendarView({
                 ))}
                 {daySchedules.length > 2 && (
                   <div
-                    className="text-xs text-primary font-semibold text-center cursor-pointer hover:bg-primary/10 rounded py-0.5 transition-colors"
+                    className="text-[10px] text-primary font-semibold text-center cursor-pointer hover:bg-primary/10 rounded py-0.5 transition-colors"
                     onClick={() => onDateClick(day)}
                   >
-                    +{daySchedules.length - 2}개
+                    +{daySchedules.length - 2}
                   </div>
                 )}
               </div>

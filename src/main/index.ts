@@ -10,10 +10,11 @@ let splashWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
 
+// 로딩 화면 사이즈
 function createSplashWindow(): void {
   splashWindow = new BrowserWindow({
-    width: 600,
-    height: 400,
+    width: 800,
+    height: 600,
     transparent: false,
     frame: false,
     alwaysOnTop: true,
@@ -21,7 +22,7 @@ function createSplashWindow(): void {
     skipTaskbar: true,
     resizable: false,
     icon: icon,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f172a' : '#ffffff',
+    backgroundColor: '#1e1e2e',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -35,26 +36,16 @@ function createSplashWindow(): void {
   } else {
     splashWindow.loadFile(join(process.resourcesPath, 'splash.html'))
   }
-
-  // 로딩 창이 준비되면 다크모드 상태 전송
-  splashWindow.webContents.on('did-finish-load', () => {
-    const isDarkMode = nativeTheme.shouldUseDarkColors
-    splashWindow?.webContents.send('theme-changed', isDarkMode)
-  })
-
-  // 다크모드 변경 감지
-  nativeTheme.on('updated', () => {
-    const isDarkMode = nativeTheme.shouldUseDarkColors
-    splashWindow?.webContents.send('theme-changed', isDarkMode)
-  })
 }
 
+// 화면 사이즈
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1000,
     height: 800,
     show: false,
+    resizable: false,
     autoHideMenuBar: true,
     icon: icon,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f172a' : '#ffffff',
@@ -153,6 +144,24 @@ function createTray(): void {
   })
 }
 
+// 중복 실행 방지
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  // 이미 다른 인스턴스가 실행 중이면 종료
+  app.quit()
+} else {
+  // 다른 인스턴스가 실행되려고 할 때
+  app.on('second-instance', () => {
+    // 메인 윈도우가 있으면 포커스
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      if (!mainWindow.isVisible()) mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+}
+
 // GPU 캐시 오류 방지를 위한 설정
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
 app.commandLine.appendSwitch('disable-gpu-program-cache')
@@ -172,7 +181,7 @@ app.whenReady().then(() => {
   })
 
   // Geolocation 권한 자동 허용
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
     if (permission === 'geolocation') {
       callback(true) // 위치 정보 권한 허용
     } else {

@@ -202,7 +202,6 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
                 <SelectItem value="develop">개발/수정</SelectItem>
                 <SelectItem value="reflect">운영 반영</SelectItem>
                 <SelectItem value="inspection">서비스 점검</SelectItem>
-                <SelectItem value="guide">사용/원인안내</SelectItem>
                 <SelectItem value="ex">기타</SelectItem>
               </SelectContent>
             </Select>

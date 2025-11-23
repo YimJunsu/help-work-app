@@ -23,16 +23,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   return (
     <div className="w-full h-full flex flex-col">
       <Card className="flex-1 border-0 bg-card">
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-4 space-y-4">
 
           {/* 웰컴 헤더 */}
           <WelcomeHeader greeting={greeting} />
 
-          {/* 다가오는 일정 */}
-          <UpcomingSchedules schedules={schedules} onNavigate={onNavigate} />
-
           {/* 날씨 정보 */}
           <WeatherWidget />
+
+          {/* 다가오는 일정 */}
+          <UpcomingSchedules schedules={schedules} onNavigate={onNavigate} />
 
         </CardContent>
       </Card>
