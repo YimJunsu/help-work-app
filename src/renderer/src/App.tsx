@@ -217,14 +217,14 @@ function App(): React.JSX.Element {
                           <SidebarMenuSubButton
                             onClick={() => window.open("https://extra-yolanthe-junsu-d39ff72a.koyeb.app/", "_blank")}
                           >
-                            <span>멍~때리기</span>
+                            <span>MungMung Time</span>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton
                             onClick={() => window.open("https://lotto-mate.kr/", "_blank")}
                           >
-                            <span>Lotto</span>
+                            <span>Lotto Mate</span>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>

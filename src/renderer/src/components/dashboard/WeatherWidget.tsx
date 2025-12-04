@@ -247,27 +247,87 @@ export function WeatherWidget() {
 
       {/* ---- Dialog (7일치 날씨) ---- */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm rounded-3xl p-5 bg-white/80 dark:bg-slate-800/60 backdrop-blur-2xl border border-white/20 shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">7 Days</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-md rounded-[28px] p-0 bg-gradient-to-b from-blue-400/95 to-blue-500/95 dark:from-blue-900/95 dark:to-blue-950/95 backdrop-blur-3xl border-0 shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-center gap-2 text-white/90 mb-1">
+              <MapPin className="w-4 h-4" />
+              <p className="text-sm font-medium">{weather.location}</p>
+            </div>
+            <h2 className="text-2xl font-semibold text-white">7일간의 일기예보</h2>
+          </div>
 
-          <div className="mt-3 space-y-3">
-            {weekly.map((day, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between bg-white/30 dark:bg-slate-700/30 backdrop-blur-lg rounded-xl px-3 py-2 border border-white/10"
-              >
-                <p className="text-sm font-medium">{day.date}</p>
+          {/* Weekly List */}
+          <div className="px-4 pb-4">
+            <div className="bg-white/10 backdrop-blur-xl rounded-[20px] overflow-hidden border border-white/20 shadow-inner">
+              {weekly.map((day, i) => {
+                const date = new Date(day.date)
+                const isToday = i === 0
+                const dayName = isToday
+                  ? '오늘'
+                  : ['일', '월', '화', '수', '목', '금', '토'][date.getDay()]
+                const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{getWeatherIcon(day.weatherCode)}</span>
-                  <p className="text-sm">
-                    {day.min}° / <b>{day.max}°</b>
-                  </p>
-                </div>
-              </div>
-            ))}
+                // Calculate temperature bar width
+                const minTemp = Math.min(...weekly.map((d) => d.min))
+                const maxTemp = Math.max(...weekly.map((d) => d.max))
+                const tempRange = maxTemp - minTemp
+                const barWidth = tempRange > 0
+                  ? ((day.max - day.min) / tempRange) * 100
+                  : 50
+
+                return (
+                  <div
+                    key={i}
+                    className={`
+                      flex items-center justify-between px-4 py-3.5
+                      ${i !== weekly.length - 1 ? 'border-b border-white/10' : ''}
+                      hover:bg-white/5 transition-colors
+                    `}
+                  >
+                    {/* Left: Day */}
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-base">
+                        {isToday ? dayName : `${dayName}요일`}
+                      </p>
+                      {!isToday && (
+                        <p className="text-white/60 text-xs mt-0.5">{dateStr}</p>
+                      )}
+                    </div>
+
+                    {/* Center: Icon */}
+                    <div className="flex-1 flex justify-center">
+                      <span className="text-3xl drop-shadow-lg">
+                        {getWeatherIcon(day.weatherCode)}
+                      </span>
+                    </div>
+
+                    {/* Right: Temperature */}
+                    <div className="flex-1 flex items-center justify-end gap-3">
+                      <span className="text-white/60 text-base font-medium min-w-[32px] text-right">
+                        {day.min}°
+                      </span>
+                      <div className="w-16 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-300 to-orange-400 rounded-full transition-all"
+                          style={{ width: `${Math.max(barWidth, 20)}%` }}
+                        />
+                      </div>
+                      <span className="text-white text-base font-semibold min-w-[32px]">
+                        {day.max}°
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Footer Info */}
+          <div className="px-6 pb-5 pt-2">
+            <p className="text-white/50 text-xs text-center">
+              Open-Meteo 제공 • 마지막 업데이트: {new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
           </div>
         </DialogContent>
       </Dialog>

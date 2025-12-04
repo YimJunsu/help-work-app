@@ -5,6 +5,18 @@ import icon from '../../resources/icon.png?asset'
 import { initDatabase, closeDatabase } from './database'
 import { registerIpcHandlers, setupAllScheduleNotifications } from './ipcHandlers'
 
+// Get tray icon path (use .ico for Windows)
+function getTrayIconPath(): string {
+  if (process.platform === 'win32') {
+    if (is.dev) {
+      return join(__dirname, '../../resources/icon.ico')
+    } else {
+      return join(process.resourcesPath, 'icon.ico')
+    }
+  }
+  return icon // For macOS/Linux
+}
+
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -51,9 +63,12 @@ function createWindow(): void {
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f172a' : '#ffffff',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      devTools: true // Enable DevTools in production
     }
   })
+
+  // DevTools는 F12로만 열기 (자동 열림 비활성화)
 
   mainWindow.on('ready-to-show', () => {
     // 최소 1.5초간 로딩 창 표시를 위한 타이머
@@ -104,7 +119,8 @@ function createWindow(): void {
 }
 
 function createTray(): void {
-  tray = new Tray(icon)
+  const trayIconPath = getTrayIconPath()
+  tray = new Tray(trayIconPath)
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -173,11 +189,17 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  // Enable F12 DevTools in both development and production for debugging
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+
+    // Allow F12 to open DevTools in production
+    window.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'F12') {
+        window.webContents.toggleDevTools()
+        event.preventDefault()
+      }
+    })
   })
 
   // Geolocation 권한 자동 허용
@@ -198,16 +220,19 @@ app.whenReady().then(() => {
   // Create main window
   createWindow()
 
-  // Create system tray
-  createTray()
+  // Wait for window to be ready before registering handlers
+  mainWindow!.webContents.once('did-finish-load', () => {
+    // Create system tray
+    createTray()
 
-  // Register all IPC handlers
-  if (mainWindow) {
-    registerIpcHandlers(mainWindow)
-  }
+    // Register all IPC handlers
+    if (mainWindow) {
+      registerIpcHandlers(mainWindow)
+    }
 
-  // Setup schedule notification timers for all existing schedules
-  setupAllScheduleNotifications()
+    // Setup schedule notification timers
+    setupAllScheduleNotifications()
+  })
 
   // 앱 종료 IPC 핸들러
   ipcMain.on('quit-app', () => {
@@ -218,7 +243,7 @@ app.whenReady().then(() => {
   // 창 최소화 IPC 핸들러
   ipcMain.on('minimize-window', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.hide()
+       mainWindow.minimize()
     }
   })
 

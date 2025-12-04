@@ -102,7 +102,6 @@ export function initDatabase(): Database.Database {
     )
   `)
 
-  console.log('Database initialized at:', dbPath)
   return db
 }
 
@@ -352,3 +351,4 @@ export function createOrUpdateUserInfo(userInfo: { name: string; birthday: strin
 
   return getUserInfo()!
 }
+

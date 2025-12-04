@@ -70,6 +70,19 @@ export function TodoItem({
           >
             <Pencil className="w-4 h-4" />
           </Button>
+          {/* Priority Badge */}
+          <Badge
+            variant="outline"
+            className={`text-[10px] font-bold px-2 py-0.5 ${
+              todo.priority === 'A'
+                ? 'bg-red-500/20 border-red-500 text-red-600'
+                : todo.priority === 'B'
+                ? 'bg-orange-500/20 border-orange-500 text-orange-600'
+                : 'bg-green-500/20 border-green-500 text-green-600'
+            }`}
+          >
+            {todo.priority}
+          </Badge>
           <Button
             variant="ghost"
             size="sm"

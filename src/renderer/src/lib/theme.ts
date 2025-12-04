@@ -5,6 +5,7 @@ export interface Theme {
 
 export const tweakCNThemes: Theme[] = [
   { name: 'Default', className: 'theme-default' },
+  { name: 'iOS', className: 'theme-ios' },
   { name: 'Blue', className: 'theme-blue' },
   { name: 'Green', className: 'theme-green' },
   { name: 'Purple', className: 'theme-purple' },
@@ -21,6 +22,7 @@ export function applyTheme(theme: Theme) {
   // Remove all theme classes
   root.classList.remove(
     'theme-default',
+    'theme-ios',
     'theme-blue',
     'theme-green',
     'theme-purple',
@@ -44,6 +46,7 @@ export function applyShadcnTheme() {
   // Remove all theme classes
   root.classList.remove(
     'theme-default',
+    'theme-ios',
     'theme-blue',
     'theme-green',
     'theme-purple',

@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 
+export type TodoPriority = 'A' | 'B' | 'C'
+
 export interface Todo {
   id: string
   text: string
   completed: boolean
   category?: string
+  priority: TodoPriority
   date: Date
 }
 
@@ -28,7 +31,8 @@ export function useTodos() {
       return parsedTodos
         .map((todo: any) => ({
           ...todo,
-          date: new Date(todo.date)
+          date: new Date(todo.date),
+          priority: todo.priority || 'C' // Default priority for existing todos
         }))
         .filter((todo: Todo) => {
           const todoDate = new Date(todo.date)
@@ -44,12 +48,12 @@ export function useTodos() {
     localStorage.setItem('dailyTodos', JSON.stringify(todos))
   }, [todos])
 
-  const addTodo = (todo: { text: string; category?: string }, editingTodo?: Todo | null) => {
+  const addTodo = (todo: { text: string; category?: string; priority?: TodoPriority }, editingTodo?: Todo | null) => {
     if (editingTodo) {
       // Update existing todo
       setTodos(todos.map(t =>
         t.id === editingTodo.id
-          ? { ...t, text: todo.text, category: todo.category }
+          ? { ...t, text: todo.text, category: todo.category, priority: todo.priority || t.priority }
           : t
       ))
     } else {
@@ -61,6 +65,7 @@ export function useTodos() {
           text: todo.text,
           completed: false,
           category: todo.category,
+          priority: todo.priority || 'C',
           date: today
         }
       ])
@@ -96,8 +101,14 @@ export function useTodos() {
     setTodos(newTodos)
   }
 
+  // Sort todos by priority (A -> B -> C)
+  const sortedTodos = [...todos].sort((a, b) => {
+    const priorityOrder = { A: 0, B: 1, C: 2 }
+    return priorityOrder[a.priority] - priorityOrder[b.priority]
+  })
+
   return {
-    todos,
+    todos: sortedTodos,
     addTodo,
     toggleTodo,
     deleteTodo,

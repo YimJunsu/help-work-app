@@ -3,17 +3,21 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
 import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert'
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
+import { Label } from '../components/ui/label'
+import type { TodoPriority } from '../hooks/useTodos'
 
 interface TodoAddProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAddTodo: (todo: { text: string; category?: string }) => void
-  editingTodo?: { text: string; category?: string } | null
+  onAddTodo: (todo: { text: string; category?: string; priority?: TodoPriority }) => void
+  editingTodo?: { text: string; category?: string; priority?: TodoPriority } | null
 }
 
 export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddProps) {
   const [newTodo, setNewTodo] = useState('')
   const [newCategory, setNewCategory] = useState('')
+  const [priority, setPriority] = useState<TodoPriority>('C')
   const [alertMessage, setAlertMessage] = useState<string | null>(null)
 
   // Load editing todo data when editingTodo changes
@@ -21,9 +25,11 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
     if (editingTodo) {
       setNewTodo(editingTodo.text)
       setNewCategory(editingTodo.category || '')
+      setPriority(editingTodo.priority || 'C')
     } else {
       setNewTodo('')
       setNewCategory('')
+      setPriority('C')
     }
   }, [editingTodo])
 
@@ -35,12 +41,14 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
 
     onAddTodo({
       text: newTodo.trim(),
-      category: newCategory.trim() || undefined
+      category: newCategory.trim() || undefined,
+      priority
     })
 
     // Reset form
     setNewTodo('')
     setNewCategory('')
+    setPriority('C')
     setAlertMessage(null)
     onOpenChange(false)
   }
@@ -48,6 +56,7 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
   const handleCancel = () => {
     setNewTodo('')
     setNewCategory('')
+    setPriority('C')
     setAlertMessage(null)
     onOpenChange(false)
   }
@@ -99,6 +108,33 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
             <p className="text-xs text-muted-foreground">
               입력한 카테고리는 배지로 표시됩니다
             </p>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium">우선순위</label>
+            <RadioGroup value={priority} onValueChange={(value) => setPriority(value as TodoPriority)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="A" id="priority-a" />
+                <Label htmlFor="priority-a" className="flex items-center gap-2 cursor-pointer">
+                  <span className="w-12 h-6 rounded-full bg-red-500/20 border border-red-500 flex items-center justify-center text-xs font-bold text-red-600">A</span>
+                  <span className="text-sm">높음</span>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="B" id="priority-b" />
+                <Label htmlFor="priority-b" className="flex items-center gap-2 cursor-pointer">
+                  <span className="w-12 h-6 rounded-full bg-orange-500/20 border border-orange-500 flex items-center justify-center text-xs font-bold text-orange-600">B</span>
+                  <span className="text-sm">보통</span>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="C" id="priority-c" />
+                <Label htmlFor="priority-c" className="flex items-center gap-2 cursor-pointer">
+                  <span className="w-12 h-6 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center text-xs font-bold text-green-600">C</span>
+                  <span className="text-sm">낮음</span>
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

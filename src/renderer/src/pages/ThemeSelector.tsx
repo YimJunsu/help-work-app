@@ -105,6 +105,13 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
                               <div className="w-4 h-4 rounded-full bg-gray-300 border border-gray-300"></div>
                             </>
                           )}
+                          {theme.name === 'iOS' && (
+                            <>
+                              <div className="w-4 h-4 rounded-full bg-blue-500 border border-gray-300"></div>
+                              <div className="w-4 h-4 rounded-full bg-gray-200 border border-gray-300"></div>
+                              <div className="w-4 h-4 rounded-full bg-gray-900 dark:bg-gray-100 border border-gray-300"></div>
+                            </>
+                          )}
                           {theme.name === 'Blue' && (
                             <>
                               <div className="w-4 h-4 rounded-full bg-blue-600 border border-gray-300"></div>
@@ -165,7 +172,13 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
                       </div>
                     </div>
 
-                    {theme.name !== 'Default' && (
+                    {theme.name === 'iOS' ? (
+                      <div className="mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          Apple Design Language
+                        </Badge>
+                      </div>
+                    ) : theme.name !== 'Default' && (
                       <div className="mt-2">
                         <Badge variant="outline" className="text-xs">
                           OKLCH 색상 시스템
