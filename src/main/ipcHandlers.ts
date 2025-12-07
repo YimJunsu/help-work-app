@@ -36,6 +36,16 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  // Debug: Get database path
+  ipcMain.handle('get-db-path', () => {
+    const { app } = require('electron')
+    const path = require('path')
+    const userDataPath = app.getPath('userData')
+    const dbPath = path.join(userDataPath, 'schedules.db')
+    console.log('[IPC] Database path:', dbPath)
+    return dbPath
+  })
+
   // Schedule IPC handlers
   registerScheduleHandlers()
 
@@ -298,7 +308,8 @@ function showScheduleNotification(schedule: { id: number; text: string; clientNa
       nodeIntegration: false,
       contextIsolation: true,
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: true, // Enable sandbox for security
+      devTools: false // Disable DevTools for notification windows
     }
   })
 

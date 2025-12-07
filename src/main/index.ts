@@ -63,8 +63,10 @@ function createWindow(): void {
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f172a' : '#ffffff',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
-      devTools: true // Enable DevTools in production
+      sandbox: true, // Enable sandbox for security
+      nodeIntegration: false, // Disable nodeIntegration for security
+      contextIsolation: true, // Enable context isolation for security
+      devTools: is.dev // Only enable DevTools in development
     }
   })
 
@@ -90,19 +92,21 @@ function createWindow(): void {
     }
   })
 
-  // DevTools 콘솔 오류 무시 설정
-  mainWindow.webContents.on('devtools-opened', () => {
-    mainWindow?.webContents.executeJavaScript(`
-      const originalError = console.error;
-      console.error = function(...args) {
-        const message = args.join(' ');
-        if (message.includes('Autofill.enable') || message.includes('Autofill.setAddresses')) {
-          return;
-        }
-        originalError.apply(console, args);
-      };
-    `)
-  })
+  // DevTools 콘솔 오류 무시 설정 (개발 모드에서만)
+  if (is.dev) {
+    mainWindow.webContents.on('devtools-opened', () => {
+      mainWindow?.webContents.executeJavaScript(`
+        const originalError = console.error;
+        console.error = function(...args) {
+          const message = args.join(' ');
+          if (message.includes('Autofill.enable') || message.includes('Autofill.setAddresses')) {
+            return;
+          }
+          originalError.apply(console, args);
+        };
+      `)
+    })
+  }
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -186,20 +190,37 @@ app.commandLine.appendSwitch('disable-gpu-program-cache')
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  // Force userData path to be consistent across dev/prod environments
+  const path = require('path')
+  let userDataPath: string
+
+  if (process.platform === 'win32') {
+    userDataPath = path.join(process.env.APPDATA || '', 'help-work-app')
+  } else if (process.platform === 'darwin') {
+    userDataPath = path.join(process.env.HOME || '', 'Library', 'Application Support', 'help-work-app')
+  } else {
+    userDataPath = path.join(process.env.HOME || '', '.config', 'help-work-app')
+  }
+
+  app.setPath('userData', userDataPath)
+  console.log('Set userData path to:', app.getPath('userData'))
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
-  // Enable F12 DevTools in both development and production for debugging
+  // Enable F12 DevTools only in development for security
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
 
-    // Allow F12 to open DevTools in production
-    window.webContents.on('before-input-event', (event, input) => {
-      if (input.key === 'F12') {
-        window.webContents.toggleDevTools()
-        event.preventDefault()
-      }
-    })
+    // Only allow F12 DevTools in development mode
+    if (is.dev) {
+      window.webContents.on('before-input-event', (event, input) => {
+        if (input.key === 'F12') {
+          window.webContents.toggleDevTools()
+          event.preventDefault()
+        }
+      })
+    }
   })
 
   // Geolocation 권한 자동 허용

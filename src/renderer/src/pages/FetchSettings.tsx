@@ -11,6 +11,7 @@ import {
   DialogTitle
 } from '../components/ui/dialog'
 import { Download, CheckCircle, RefreshCw, Info } from 'lucide-react'
+import { sanitizeMarkdown } from '../lib/sanitize'
 
 interface UpdateInfo {
   version: string
@@ -146,10 +147,10 @@ export function FetchSettings() {
     if (!notes) return '릴리즈 노트가 없습니다.'
 
     if (typeof notes === 'string') {
-      return parseMarkdown(notes)
+      return sanitizeMarkdown(parseMarkdown(notes))
     }
 
-    return notes.map(item => `<div><strong>버전 ${item.version}:</strong><br>${parseMarkdown(item.note)}</div>`).join('<br><br>')
+    return sanitizeMarkdown(notes.map(item => `<div><strong>버전 ${item.version}:</strong><br>${parseMarkdown(item.note)}</div>`).join('<br><br>'))
   }
 
   return (

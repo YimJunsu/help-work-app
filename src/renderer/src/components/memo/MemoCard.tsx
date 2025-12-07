@@ -4,6 +4,7 @@ import { FileText, Pencil, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import type { Memo } from '../../hooks/useMemos'
+import { sanitizeHtml } from '../../lib/sanitize'
 
 interface MemoCardProps {
   memo: Memo
@@ -54,7 +55,7 @@ export function MemoCard({ memo, isDeleting, onClick, onEdit, onDelete }: MemoCa
           <div className="flex-1 min-h-[60px]">
             <div
               className="text-sm text-card-foreground line-clamp-3 prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: memo.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(memo.content) }}
             />
           </div>
         </div>

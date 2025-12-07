@@ -38,8 +38,11 @@ export interface UserInfo {
 }
 
 export function initDatabase(): Database.Database {
+  // Get userData path (set in main process via app.setPath)
   const userDataPath = app.getPath('userData')
   const dbPath = path.join(userDataPath, 'schedules.db')
+
+  console.log('Database path:', dbPath)
 
   db = new Database(dbPath)
 

@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { sanitizeHtml } from '../lib/sanitize'
 
 interface MemoDetailProps {
   open: boolean
@@ -31,7 +32,7 @@ export function MemoDetail({ open, onOpenChange, memo }: MemoDetailProps) {
           <div className="p-4 bg-muted/30 rounded-md border border-border">
             <div
               className="prose prose-sm dark:prose-invert max-w-none text-foreground overflow-auto"
-              dangerouslySetInnerHTML={{ __html: memo.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(memo.content) }}
             />
           </div>
         </div>
