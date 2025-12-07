@@ -1,0 +1,182 @@
+========================================
+  프로젝트 파일 정리 리포트
+========================================
+작성일: 2025-12-08
+
+========================================
+삭제된 파일 목록
+========================================
+
+1. nul (50 bytes)
+   - 위치: 프로젝트 루트
+   - 사유: sqlite3 명령 에러 메시지가 저장된 임시 파일
+   - 영향: 없음
+
+2. check-db.js (약 1KB)
+   - 위치: 프로젝트 루트
+   - 사유: 데이터베이스 테스트용으로 생성된 임시 스크립트
+   - 영향: 없음 (개발용 도구)
+
+3. src/renderer/src/pages/MiniGame.tsx
+   - 사유: App.tsx에 import되어 있지만 실제로 접근할 수 없는 데드 코드
+   - 설명: currentPage에 'minigame'을 설정하는 메뉴가 없어 렌더링 불가
+   - 영향: 없음 (이미 사용되지 않음)
+
+4. src/renderer/src/pages/AnimalRace.tsx
+   - 사유: App.tsx에 import되어 있지만 실제로 접근할 수 없는 데드 코드
+   - 설명: currentPage에 'animalrace'를 설정하는 메뉴가 없어 렌더링 불가
+   - 영향: 없음 (이미 사용되지 않음)
+
+
+========================================
+현재 사용 중인 페이지 구조
+========================================
+
+Main App (App.tsx)
+├── Dashboard (메인 화면)
+├── TodoList (Daily TodoList)
+├── ScheduleCheck (Schedule Check)
+│   └── ScheduleAdd (일정 추가 다이얼로그)
+├── Memo (메모)
+│   ├── MemoAdd (메모 추가)
+│   └── MemoDetail (메모 상세)
+└── Settings (설정 다이얼로그)
+    ├── UserInfo (사용자 정보)
+    ├── FetchSettings (업데이트)
+    └── ThemeSelector (테마 선택)
+
+외부 링크 메뉴 (RestTime):
+- MungMung Time (외부 웹)
+- Lotto Mate (외부 웹)
+
+
+========================================
+정리 가능한 빌드 디렉토리
+========================================
+
+dist/ (684MB)
+- 릴리즈 빌드 결과물
+- 정리 시점: 새 릴리즈 빌드 전
+- 재생성: npm run build:win
+
+out/ (2.3MB)
+- 개발 빌드 결과물
+- 정리 시점: 불필요 시 (자동 재생성됨)
+- 재생성: npm run dev 자동 생성
+
+node_modules/
+- 의존성 패키지들
+- 정리 방법: rm -rf node_modules && npm install
+- 권장하지 않음 (시간 소요)
+
+
+========================================
+유지되는 모든 소스 파일
+========================================
+
+Main Process:
+✓ src/main/index.ts - Electron 메인 프로세스
+✓ src/main/database.ts - SQLite 데이터베이스 관리
+✓ src/main/ipcHandlers.ts - IPC 통신 핸들러
+
+Preload:
+✓ src/preload/index.ts - Preload 스크립트
+✓ src/preload/index.d.ts - 타입 정의
+
+Pages:
+✓ src/renderer/src/App.tsx - 메인 앱
+✓ src/renderer/src/pages/Dashboard.tsx
+✓ src/renderer/src/pages/TodoList.tsx
+✓ src/renderer/src/pages/TodoAdd.tsx
+✓ src/renderer/src/pages/ScheduleCheck.tsx
+✓ src/renderer/src/pages/ScheduleAdd.tsx
+✓ src/renderer/src/pages/Memo.tsx
+✓ src/renderer/src/pages/MemoAdd.tsx
+✓ src/renderer/src/pages/MemoDetail.tsx
+✓ src/renderer/src/pages/Settings.tsx
+✓ src/renderer/src/pages/UserInfo.tsx
+✓ src/renderer/src/pages/FetchSettings.tsx
+✓ src/renderer/src/pages/ThemeSelector.tsx
+
+Components:
+✓ src/renderer/src/components/dashboard/* (4 파일)
+✓ src/renderer/src/components/memo/* (2 파일)
+✓ src/renderer/src/components/schedule/* (5 파일)
+✓ src/renderer/src/components/todo/* (2 파일)
+✓ src/renderer/src/components/ui/* (19 파일)
+
+Hooks:
+✓ src/renderer/src/hooks/useDateChangeDetection.ts
+✓ src/renderer/src/hooks/useDeleteAnimation.ts
+✓ src/renderer/src/hooks/useDragAndDrop.ts
+✓ src/renderer/src/hooks/useMemos.ts
+✓ src/renderer/src/hooks/use-mobile.tsx
+✓ src/renderer/src/hooks/useScheduleManagement.ts
+✓ src/renderer/src/hooks/useSchedules.ts
+✓ src/renderer/src/hooks/useTodos.ts
+✓ src/renderer/src/hooks/useTodoStats.ts
+✓ src/renderer/src/hooks/useUserInfo.ts
+
+Utils & Lib:
+✓ src/renderer/src/lib/sanitize.ts
+✓ src/renderer/src/lib/theme.ts
+✓ src/renderer/src/lib/utils.ts
+✓ src/renderer/src/utils/calendarUtils.ts
+✓ src/renderer/src/utils/greetingUtils.ts
+✓ src/renderer/src/utils/scheduleUtils.ts
+
+
+========================================
+예상 효과
+========================================
+
+용량 절감:
+- 소스 코드: 약 2개 파일 삭제 (MiniGame.tsx, AnimalRace.tsx)
+- 임시 파일: 2개 삭제 (check-db.js, nul)
+- 총 절감: 미미 (수 KB)
+
+성능 개선:
+- 번들 크기 감소: 미미 (사용되지 않던 코드)
+- 빌드 시간: 변화 없음
+- 코드 가독성: 향상 (불필요한 import 제거)
+
+유지보수성:
+- 데드 코드 제거로 혼란 감소
+- 프로젝트 구조 명확화
+
+
+========================================
+주의사항
+========================================
+
+1. App.tsx 수정 필요
+   - MiniGame, AnimalRace import 제거 필요
+   - currentPage 타입에서 'minigame', 'animalrace' 제거 필요
+
+2. 백업
+   - 삭제 전 git commit 권장
+   - 혹시 모를 복구를 위해
+
+3. 빌드 테스트
+   - 삭제 후 npm run dev 테스트
+   - npm run build:win 테스트
+
+
+========================================
+다음 정리 시점 추천
+========================================
+
+1. 매 릴리즈 전:
+   - dist/ 폴더 정리 (새로 빌드)
+   - 임시 파일 확인
+
+2. 기능 추가/제거 시:
+   - 사용되지 않는 컴포넌트 확인
+   - import 정리
+
+3. 주기적 (월 1회):
+   - 불필요한 의존성 확인 (npm-check 등 도구 사용)
+   - console.log 등 디버그 코드 제거
+
+
+========================================

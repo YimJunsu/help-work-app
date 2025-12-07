@@ -22,8 +22,6 @@ import { ScheduleCheck } from "./pages/ScheduleCheck"
 import { TodoList } from "./pages/TodoList"
 import { Dashboard } from "./pages/Dashboard"
 import Memo from "./pages/Memo"
-import { MiniGame } from "./pages/MiniGame"
-import { AnimalRace } from "./pages/AnimalRace"
 import { Settings } from "./pages/Settings"
 import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown } from "lucide-react"
 import { format } from 'date-fns'
@@ -38,7 +36,7 @@ function App(): React.JSX.Element {
     return localStorage.getItem('selected-theme') || 'shadcn'
   })
 
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'minigame' | 'animalrace' | 'fetch' | 'userinfo'>('dashboard')
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'fetch' | 'userinfo'>('dashboard')
   const [showThemeDialog, setShowThemeDialog] = useState(false)
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
   const [hasTodoDialog, setHasTodoDialog] = useState(false)
@@ -360,10 +358,6 @@ function App(): React.JSX.Element {
               <ScheduleCheck onDialogChange={setHasTodoDialog} />
             ) : currentPage === 'memo' ? (
               <Memo onDialogChange={setHasTodoDialog} />
-            ) : currentPage === 'minigame' ? (
-              <MiniGame />
-            ) : currentPage === 'animalrace' ? (
-              <AnimalRace />
             ) : null}
           </main>
 

@@ -19,6 +19,8 @@ extraResources:
     to: notification.html
   - from: resources/icon.ico
     to: icon.ico
+  - from: resources/icon.png
+    to: icon.png
 
 icon: resources/icon.png
 

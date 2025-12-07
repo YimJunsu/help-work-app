@@ -7,7 +7,9 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()]
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    // Don't externalize deps in preload when using sandbox mode
+    // All dependencies must be bundled for sandbox to work
+    plugins: []
   },
   renderer: {
     resolve: {

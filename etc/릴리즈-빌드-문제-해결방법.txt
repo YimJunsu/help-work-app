@@ -1,0 +1,180 @@
+========================================
+  릴리즈/빌드 문제 해결 가이드
+========================================
+작성일: 2025-12-08
+
+========================================
+발생한 문제들
+========================================
+
+1. 로딩 화면 이미지 부재
+   - 증상: 릴리즈 빌드 후 로딩 화면에 이미지가 표시되지 않음
+   - 원인: splash.html에서 icon.png를 참조하는데, electron-builder.yml의 extraResources에 포함되지 않음
+
+2. 데이터 연동 실패 (가장 심각)
+   - 증상: npm run dev 실행 시 기존 데이터(스케줄, 메모, 사용자 정보)가 표시되지 않음
+   - 에러 메시지: "Unable to load preload script"
+                  "Error: module not found: @electron-toolkit/preload"
+   - 원인: sandbox 모드에서 externalizeDepsPlugin()을 사용하면
+          @electron-toolkit/preload가 번들에 포함되지 않아
+          preload 스크립트가 로드되지 않고, IPC 통신이 불가능해짐
+
+========================================
+해결 방법
+========================================
+
+【문제 1 해결】로딩 화면 이미지 누락
+------------------------------------------
+파일: electron-builder.yml
+
+변경 전:
+extraResources:
+  - from: resources/splash.html
+    to: splash.html
+  - from: resources/notification.html
+    to: notification.html
+  - from: resources/icon.ico
+    to: icon.ico
+
+변경 후:
+extraResources:
+  - from: resources/splash.html
+    to: splash.html
+  - from: resources/notification.html
+    to: notification.html
+  - from: resources/icon.ico
+    to: icon.ico
+  - from: resources/icon.png    # ← 추가!
+    to: icon.png
+
+
+【문제 2 해결】데이터 연동 실패 (핵심!)
+------------------------------------------
+파일: electron.vite.config.ts
+
+변경 전:
+export default defineConfig({
+  main: {
+    plugins: [externalizeDepsPlugin()]
+  },
+  preload: {
+    plugins: [externalizeDepsPlugin()]  # ← 문제 원인!
+  },
+  renderer: {
+    resolve: {
+      alias: {
+        '@renderer': resolve('src/renderer/src')
+      }
+    },
+    plugins: [react()]
+  }
+})
+
+변경 후:
+export default defineConfig({
+  main: {
+    plugins: [externalizeDepsPlugin()]
+  },
+  preload: {
+    // Don't externalize deps in preload when using sandbox mode
+    // All dependencies must be bundled for sandbox to work
+    plugins: []  # ← externalizeDepsPlugin() 제거!
+  },
+  renderer: {
+    resolve: {
+      alias: {
+        '@renderer': resolve('src/renderer/src')
+      }
+    },
+    plugins: [react()]
+  }
+})
+
+
+========================================
+왜 이런 문제가 발생했나?
+========================================
+
+1. Electron Sandbox 모드의 제약사항
+   - src/main/index.ts에서 sandbox: true를 사용 중
+   - Sandbox 모드에서는 보안상 preload 스크립트가 외부 모듈을 직접 로드할 수 없음
+   - 모든 dependencies를 번들에 포함(inline)해야 함
+
+2. externalizeDepsPlugin의 동작
+   - 이 플러그인은 node_modules의 dependencies를 번들에 포함하지 않고
+     require()로 런타임에 로드하도록 처리함
+   - main 프로세스에서는 문제없지만, preload에서는 sandbox 제약 때문에 실패
+
+3. 결과
+   - @electron-toolkit/preload가 번들에 포함되지 않음
+   - preload 스크립트 로드 실패
+   - IPC 통신 불가 → API 호출 불가 → 데이터베이스 접근 불가
+
+
+========================================
+확인 방법
+========================================
+
+1. 빌드 전 확인
+   - out/preload/index.js 파일 크기 확인
+   - 수정 전: ~0.69 kB (dependencies가 external)
+   - 수정 후: ~2.83 kB (dependencies가 번들에 포함됨)
+
+2. 개발 모드 테스트
+   npm run dev
+   - F12 개발자 도구 열기
+   - 콘솔에 "Unable to load preload script" 에러가 없어야 함
+   - 데이터가 정상적으로 표시되어야 함
+
+3. 프로덕션 빌드 테스트
+   npm run build:win
+   - dist/win-unpacked/resources/ 폴더에 icon.png 존재 확인
+   - 앱 실행 시 로딩 화면 이미지 표시 확인
+   - 데이터 정상 표시 확인
+
+
+========================================
+체크리스트 (릴리즈 전 필수 확인)
+========================================
+
+□ electron.vite.config.ts에서 preload의 plugins: [] 확인
+□ electron-builder.yml의 extraResources에 icon.png 포함 확인
+□ npm run dev로 개발 모드 테스트
+□ 콘솔 에러 없는지 확인
+□ 기존 데이터 정상 표시 확인
+□ npm run build:win으로 프로덕션 빌드
+□ dist/win-unpacked/resources/icon.png 파일 존재 확인
+□ 빌드된 앱 실행하여 최종 테스트
+
+
+========================================
+추가 참고사항
+========================================
+
+1. userData 경로
+   - Windows: C:\Users\[username]\AppData\Roaming\help-work-app
+   - 데이터베이스: schedules.db
+   - 이 경로는 src/main/index.ts에서 app.whenReady() 이전에 설정됨
+
+2. 다른 파일들도 확인
+   - notification.html에서도 이미지를 참조한다면 동일하게 추가 필요
+   - resources 폴더의 모든 파일이 런타임에 필요한지 확인
+
+3. 비슷한 문제 발생 시
+   - 콘솔에서 "module not found" 에러 확인
+   - preload 관련 에러는 electron.vite.config.ts 확인
+   - 리소스 파일 누락은 electron-builder.yml 확인
+
+
+========================================
+문제 발견 시 대처 순서
+========================================
+
+1. 개발자 도구(F12) 열기
+2. Console 탭에서 에러 메시지 확인
+3. "preload" 관련 에러 → electron.vite.config.ts 확인
+4. "리소스/이미지" 관련 문제 → electron-builder.yml 확인
+5. 데이터 표시 안 됨 → preload 스크립트 로드 여부 먼저 확인
+6. 수정 후 반드시 npm run dev로 테스트 후 빌드
+
+========================================

@@ -6,7 +6,7 @@ import { getGreetingMessage } from '../utils/greetingUtils'
 import { WelcomeHeader, UpcomingSchedules } from '../components/dashboard'
 import { WeatherWidget } from '../components/dashboard/WeatherWidget'
 
-interface DashboardProps { onNavigate?: (page: | 'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'minigame' | 'animalrace' | 'fetch' | 'userinfo') => void
+interface DashboardProps { onNavigate?: (page: | 'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'fetch' | 'userinfo') => void
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
