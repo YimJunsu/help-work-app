@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Dialog, DialogContent } from '../components/ui/dialog'
 import { Button } from '../components/ui/button'
-import { Settings as SettingsIcon, Palette, Download, User, X, Power } from 'lucide-react'
+import { Settings as SettingsIcon, Palette, Download, User, Power } from 'lucide-react'
 import { UserInfo } from './UserInfo'
 import { FetchSettings } from './FetchSettings'
 import { ThemeSelector } from './ThemeSelector'
@@ -60,14 +60,6 @@ export function Settings({ open, onOpenChange, updateAvailable, currentTheme, on
               <div className="flex items-center gap-2 mb-6 px-2">
                 <SettingsIcon className="w-5 h-5" />
                 <h2 className="text-lg font-semibold">Settings</h2>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-auto h-8 w-8"
-                  onClick={() => onOpenChange(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
               </div>
 
               <nav className="space-y-1 flex-1">

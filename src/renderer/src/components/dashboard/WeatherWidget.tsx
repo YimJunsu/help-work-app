@@ -42,27 +42,17 @@ export function WeatherWidget() {
       let latitude: number
       let longitude: number
 
+      // IP 기반으로 위치 가져오기
       try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 10000,
-            maximumAge: 600000,
-            enableHighAccuracy: false
-          })
-        })
-        latitude = position.coords.latitude
-        longitude = position.coords.longitude
+        const ipResponse = await fetch('https://ipapi.co/json/')
+        if (!ipResponse.ok) throw new Error('IP location failed')
+        const ipData = await ipResponse.json()
+        latitude = ipData.latitude
+        longitude = ipData.longitude
       } catch {
-        try {
-          const ipResponse = await fetch('https://ipapi.co/json/')
-          if (!ipResponse.ok) throw new Error('IP location failed')
-          const ipData = await ipResponse.json()
-          latitude = ipData.latitude
-          longitude = ipData.longitude
-        } catch {
-          latitude = 37.5665
-          longitude = 126.9780
-        }
+        // IP 기반 위치 가져오기 실패 시 서울을 기본값으로 사용
+        latitude = 37.5665
+        longitude = 126.9780
       }
 
       /** ---- 현재 날씨 ---- */

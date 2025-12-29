@@ -6,7 +6,6 @@ interface ScheduleListViewProps {
   schedules: Schedule[]
   deletingSchedules: Set<number>
   draggedSchedule: number | null
-  sortByLatest: boolean
   selectedCategory: string | null
   onToggle: (id: number) => void
   onEdit: (schedule: Schedule) => void
@@ -21,7 +20,6 @@ export function ScheduleListView({
   schedules,
   deletingSchedules,
   draggedSchedule,
-  sortByLatest,
   selectedCategory,
   onToggle,
   onEdit,
@@ -36,7 +34,7 @@ export function ScheduleListView({
       <div className="text-center py-8 text-muted-foreground">
         <ListIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
         <p className="text-lg font-medium">{selectedCategory ? '해당 카테고리에 일정이 없습니다' : '일정이 없습니다'}</p>
-        <p className="text-sm">새로운 일정을 추가해보세요</p>
+        <p className="text-sm">새로운 일정을 추가해보세요!</p>
       </div>
     )
   }
@@ -49,7 +47,6 @@ export function ScheduleListView({
           schedule={schedule}
           isDeleting={deletingSchedules.has(schedule.id)}
           isDragging={draggedSchedule === schedule.id}
-          sortByLatest={sortByLatest}
           onToggle={onToggle}
           onEdit={onEdit}
           onDelete={onDelete}

@@ -1,6 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
 import { Card, CardContent } from '../components/ui/card'
-import { Badge } from '../components/ui/badge'
 import { tweakCNThemes, applyTheme, applyShadcnTheme, type Theme } from '../lib/theme'
 import { Palette, Check } from 'lucide-react'
 
@@ -47,7 +46,6 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
         <div className="space-y-6">
           {/* shadcn 기본 테마 */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">기본 테마</h3>
             <Card
               className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
                 currentTheme === 'shadcn' ? 'ring-2 ring-primary' : ''
@@ -77,7 +75,6 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
 
           {/* TweakCN 테마들 */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">TweakCN 테마</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {tweakCNThemes.map((theme) => (
                 <Card
@@ -91,7 +88,6 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium">{theme.name}</div>
-                        <div className="text-sm text-muted-foreground">TweakCN 테마</div>
                       </div>
                       <div className="flex items-center gap-2">
                         {currentTheme === theme.name && (
@@ -126,13 +122,6 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
                               <div className="w-4 h-4 rounded-full bg-green-200 border border-gray-300"></div>
                             </>
                           )}
-                          {theme.name === 'Purple' && (
-                            <>
-                              <div className="w-4 h-4 rounded-full bg-purple-600 border border-gray-300"></div>
-                              <div className="w-4 h-4 rounded-full bg-purple-400 border border-gray-300"></div>
-                              <div className="w-4 h-4 rounded-full bg-purple-200 border border-gray-300"></div>
-                            </>
-                          )}
                           {theme.name === 'Soft Pink' && (
                             <>
                               <div className="w-4 h-4 rounded-full bg-pink-400 border border-gray-300"></div>
@@ -154,37 +143,9 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
                               <div className="w-4 h-4 rounded-full bg-orange-200 border border-gray-300"></div>
                             </>
                           )}
-                          {theme.name === 'DOOM64' && (
-                            <>
-                              <div className="w-4 h-4 rounded-full bg-red-600 border border-gray-300"></div>
-                              <div className="w-4 h-4 rounded-full bg-green-500 border border-gray-300"></div>
-                              <div className="w-4 h-4 rounded-full bg-yellow-500 border border-gray-300"></div>
-                            </>
-                          )}
-                          {theme.name === 'Kodama-Grove' && (
-                            <>
-                              <div className="w-4 h-4 rounded-full bg-green-700 border border-gray-300"></div>
-                              <div className="w-4 h-4 rounded-full bg-white border border-gray-300"></div>
-                              <div className="w-4 h-4 rounded-full bg-yellow-950 border border-gray-300"></div>
-                            </>
-                          )}
                         </div>
                       </div>
                     </div>
-
-                    {theme.name === 'iOS' ? (
-                      <div className="mt-2">
-                        <Badge variant="outline" className="text-xs">
-                          Apple Design Language
-                        </Badge>
-                      </div>
-                    ) : theme.name !== 'Default' && (
-                      <div className="mt-2">
-                        <Badge variant="outline" className="text-xs">
-                          OKLCH 색상 시스템
-                        </Badge>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}

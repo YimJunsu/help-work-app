@@ -16,9 +16,10 @@ interface ScheduleAddProps {
   onOpenChange: (open: boolean) => void
   onAddSchedule: (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; webData?: boolean }) => void
   editingSchedule?: { id: number; text: string; category?: string; dueDate?: string; clientName?: string; webData?: number | boolean } | null
+  initialDate?: Date | null
 }
 
-export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule }: ScheduleAddProps) {
+export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule, initialDate }: ScheduleAddProps) {
   const now = new Date()
   const currentHour = now.getHours().toString().padStart(2, '0')
   const currentMinute = (Math.round(now.getMinutes() / 5) * 5).toString().padStart(2, '0')
@@ -60,16 +61,17 @@ export function ScheduleAdd({ open, onOpenChange, onAddSchedule, editingSchedule
     } else {
       // 새 스케줄 추가 시 현재 시간으로 초기화
       const currentTime = new Date()
+      const dateToUse = initialDate || new Date()
       setNewSchedule('')
       setClientName('')
-      setSelectedDate(new Date())
+      setSelectedDate(dateToUse)
       setSelectedHour(currentTime.getHours().toString().padStart(2, '0'))
       setSelectedMinute((Math.round(currentTime.getMinutes() / 5) * 5).toString().padStart(2, '0'))
       setNewScheduleCategory(undefined)
       setCustomCategory('')
       setWebData(false)
     }
-  }, [editingSchedule])
+  }, [editingSchedule, initialDate])
 
   const handleAdd = () => {
     if (!clientName.trim()) {

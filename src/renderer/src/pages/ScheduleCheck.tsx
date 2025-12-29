@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Card, CardContent, CardHeader } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Checkbox } from '../components/ui/checkbox'
-import { Plus, CheckCheck, CalendarDays, List as ListIcon, Calendar as CalendarIcon, Pencil, Trash2 } from 'lucide-react'
+import { CheckCheck, Calendar as CalendarIcon, Pencil, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { ScheduleAdd } from './ScheduleAdd'
@@ -19,17 +19,18 @@ import type { Schedule } from '../hooks/useSchedules'
 
 interface ScheduleProps {
   onDialogChange?: (isOpen: boolean) => void
+  onStatsChange?: (stats: { completed: number; total: number }) => void
 }
 
-export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
+export const ScheduleCheck = forwardRef<{ openAddDialog: () => void; toggleViewMode: () => void }, ScheduleProps>(function ScheduleCheck({ onDialogChange, onStatsChange }, ref) {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null)
-  const [sortByLatest, setSortByLatest] = useState(false)
   const [viewMode, setViewMode] = useState<"list" | "calendar">(() => "list")
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [showScheduleListDialog, setShowScheduleListDialog] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [initialScheduleDate, setInitialScheduleDate] = useState<Date | null>(null)
 
   const {
     schedules,
@@ -77,17 +78,27 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
       : schedules.filter(schedule => schedule.category === selectedCategory)
     : schedules
 
-  if (sortByLatest) {
-    filteredSchedules = [...filteredSchedules].sort((a, b) => {
-      if (!a.dueDate && !b.dueDate) return 0
-      if (!a.dueDate) return 1
-      if (!b.dueDate) return -1
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-    })
-  }
+  // 기본적으로 날짜 순으로 정렬
+  filteredSchedules = [...filteredSchedules].sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0
+    if (!a.dueDate) return 1
+    if (!b.dueDate) return -1
+    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+  })
 
   const completedCount = filteredSchedules.filter(schedule => schedule.completed).length
   const totalCount = filteredSchedules.length
+
+  // Notify parent when stats change
+  useEffect(() => {
+    onStatsChange?.({ completed: completedCount, total: totalCount })
+  }, [completedCount, totalCount, onStatsChange])
+
+  // Expose openAddDialog and toggleViewMode to parent
+  useImperativeHandle(ref, () => ({
+    openAddDialog: () => setShowAddDialog(true),
+    toggleViewMode: () => setViewMode(prev => prev === 'list' ? 'calendar' : 'list')
+  }))
 
   // Narrowing 방지: viewMode를 JSX 비교문 위에서 따로 변수 선언
   const mode = viewMode
@@ -95,58 +106,9 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
   return (
     <div className="w-full h-full flex flex-col">
       <Card className="flex-1 border-0 bg-card">
-        <CardHeader className={mode === 'calendar' ? 'pb-2 pt-3' : 'pb-4'}>
+        <CardHeader className={mode === 'calendar' ? 'pb-2 pt-2' : 'pb-2 pt-0'}>
           {mode === 'list' ? (
-            // 리스트 모드: 기존 레이아웃
-            <>
-              <div className="flex items-center justify-between min-h-[60px]">
-                <div className="flex flex-col justify-center">
-                  <CardTitle className="text-2xl font-bold text-card-foreground leading-tight">Work Schedule Check</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">업무 스케줄 확인</p>
-                </div>
-                <div className="flex items-center gap-2 h-full">
-                  <Badge variant="secondary" className="text-sm font-medium">
-                    {completedCount}/{totalCount} 완료
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className={`text-sm font-medium cursor-pointer transition-all duration-200 ${sortByLatest ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}
-                    onClick={() => setSortByLatest(!sortByLatest)}
-                  >
-                    Latest
-                  </Badge>
-                  {completedCount > 0 && (
-                    <Button
-                      onClick={handleClearCompleted}
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <CheckCheck className="w-4 h-4" />
-                    </Button>
-                  )}
-                  <Button
-                    onClick={() => setViewMode('calendar')}
-                    variant="ghost"
-                    size="sm"
-                    className="transition-all duration-200 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                  >
-                    <CalendarDays className="w-4 h-4" />
-                  </Button>
-                  <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-md transition-all duration-200">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-              <CategoryBadges
-                schedules={schedules}
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                viewMode={mode}
-              />
-            </>
-          ) : (
-            // 달력 모드: 한 줄 레이아웃
+            // 리스트 모드
             <div className="flex items-center justify-between gap-2">
               <CategoryBadges
                 schedules={schedules}
@@ -154,18 +116,30 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
                 onSelectCategory={setSelectedCategory}
                 viewMode={mode}
               />
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 font-medium">
-                  {completedCount}/{totalCount}
-                </Badge>
-                <Badge
-                  variant="secondary"
-                  className={`text-[10px] px-1.5 py-0.5 font-medium cursor-pointer transition-all duration-200 ${sortByLatest ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}
-                  onClick={() => setSortByLatest(!sortByLatest)}
-                >
-                  Latest
-                </Badge>
-                {completedCount > 0 && (
+              {completedCount > 0 && (
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button
+                    onClick={handleClearCompleted}
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            // 달력 모드
+            <div className="flex items-center justify-between gap-2">
+              <CategoryBadges
+                schedules={schedules}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+                viewMode={mode}
+              />
+              {completedCount > 0 && (
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <Button
                     onClick={handleClearCompleted}
                     variant="ghost"
@@ -174,31 +148,19 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
                   >
                     <CheckCheck className="w-3 h-3" />
                   </Button>
-                )}
-                <Button
-                  onClick={() => setViewMode('list')}
-                  variant="ghost"
-                  size="sm"
-                  className="transition-all duration-200 h-6 w-6 p-0 bg-primary/10 text-primary"
-                >
-                  <ListIcon className="w-3 h-3" />
-                </Button>
-                <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-md transition-all duration-200 h-6 w-6 p-0">
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
+                </div>
+              )}
             </div>
           )}
         </CardHeader>
 
         {/* 여기서도 mode로 비교 */}
-        <CardContent className={mode === 'calendar' ? 'space-y-2 pt-2' : 'space-y-4'}>
+        <CardContent className={mode === 'calendar' ? 'space-y-2 pt-2' : 'space-y-4 pt-2'}>
           {mode === 'list' ? (
             <ScheduleListView
               schedules={filteredSchedules}
               deletingSchedules={deletingItems}
               draggedSchedule={draggedItem}
-              sortByLatest={sortByLatest}
               selectedCategory={selectedCategory}
               onToggle={toggleSchedule}
               onEdit={startEditSchedule}
@@ -219,6 +181,10 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
                 setSelectedDate(date)
                 setShowScheduleListDialog(true)
               }}
+              onEmptyDateClick={(date) => {
+                setInitialScheduleDate(date)
+                setShowAddDialog(true)
+              }}
             />
           )}
         </CardContent>
@@ -228,18 +194,35 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
         open={showAddDialog}
         onOpenChange={(open) => {
           setShowAddDialog(open)
-          if (!open) setEditingSchedule(null)
+          if (!open) {
+            setEditingSchedule(null)
+            setInitialScheduleDate(null)
+          }
         }}
         onAddSchedule={handleAddOrUpdateSchedule}
         editingSchedule={editingSchedule}
+        initialDate={initialScheduleDate}
       />
 
       <Dialog open={showScheduleListDialog} onOpenChange={setShowScheduleListDialog}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5" />
-              {selectedDate && format(selectedDate, 'yyyy년 M월 d일', { locale: ko })} 일정
+            <DialogTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5" />
+                {selectedDate && format(selectedDate, 'yyyy년 M월 d일', { locale: ko })} 일정
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setInitialScheduleDate(selectedDate)
+                  setShowScheduleListDialog(false)
+                  setShowAddDialog(true)
+                }}
+                className="h-8"
+              >
+                + 추가
+              </Button>
             </DialogTitle>
           </DialogHeader>
 
@@ -328,4 +311,4 @@ export function ScheduleCheck({ onDialogChange }: ScheduleProps) {
       </Dialog>
     </div>
   )
-}
+})

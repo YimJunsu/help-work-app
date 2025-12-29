@@ -105,7 +105,7 @@ export function UserInfo() {
                   사용자 정보
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  개인 정보를 관리하세요
+                  정보를 입력 해주세요.
                 </p>
               </div>
             </div>

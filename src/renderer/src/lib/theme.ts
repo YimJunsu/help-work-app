@@ -6,14 +6,10 @@ export interface Theme {
 export const tweakCNThemes: Theme[] = [
   { name: 'Default', className: 'theme-default' },
   { name: 'iOS', className: 'theme-ios' },
-  { name: 'Blue', className: 'theme-blue' },
   { name: 'Green', className: 'theme-green' },
-  { name: 'Purple', className: 'theme-purple' },
   { name: 'Soft Pink', className: 'theme-soft-pink' },
   { name: 'Twitter', className: 'theme-twitter' },
   { name: 'Claude', className: 'theme-claude' },
-  { name: 'DOOM64', className: 'theme-doom64' },
-  { name: 'Kodama-Grove', className: 'theme-Kodama-Grove' },
 ]
 
 export function applyTheme(theme: Theme) {
@@ -23,15 +19,11 @@ export function applyTheme(theme: Theme) {
   root.classList.remove(
     'theme-default',
     'theme-ios',
-    'theme-blue',
     'theme-green',
-    'theme-purple',
     'theme-soft-pink',
     'theme-twitter',
     'theme-claude',
-    'theme-shadcn',
-    'theme-doom64',
-    'theme-Kodama-Grove'
+    'theme-shadcn'
   )
 
   // Add the new theme class
@@ -47,15 +39,11 @@ export function applyShadcnTheme() {
   root.classList.remove(
     'theme-default',
     'theme-ios',
-    'theme-blue',
     'theme-green',
-    'theme-purple',
     'theme-soft-pink',
     'theme-twitter',
     'theme-claude',
-    'theme-shadcn',
-    'theme-doom64',
-    'theme-Kodama-Grove'
+    'theme-shadcn'
   )
 
   // shadcn is the default, so no class needed

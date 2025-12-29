@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
-import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert'
-import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group'
-import { Label } from '../components/ui/label'
+import { Dialog, DialogContent } from '../components/ui/dialog'
+import { X } from 'lucide-react'
 import type { TodoPriority } from '../hooks/useTodos'
 
 interface TodoAddProps {
@@ -63,91 +60,123 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-background/95 backdrop-blur-md border-2 shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold">
-            {editingTodo ? 'Edit Todo' : 'Add Todo'}
-          </DialogTitle>
-          <DialogDescription>
-            {editingTodo ? '할 일을 수정하세요.' : '오늘의 할 일을 추가하세요.'}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-md p-0 gap-0 bg-background border-0 rounded-3xl overflow-hidden">
+        {/* Header */}
+        <div className="relative px-6 pt-8 pb-6 bg-background">
+          <button
+            onClick={handleCancel}
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-accent/50 transition-colors"
+          >
+            <X className="w-5 h-5 text-muted-foreground" />
+          </button>
+          <h2 className="text-2xl font-bold text-foreground">
+            {editingTodo ? '할 일 수정하기' : '할 일 추가하기'}
+          </h2>
+        </div>
 
-        <div className="space-y-4 pt-4">
-          {alertMessage && (
-            <Alert variant="destructive">
-              <AlertTitle>오류</AlertTitle>
-              <AlertDescription>{alertMessage}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">할 일</label>
-            <Input
-              placeholder="할 일을 입력하세요"
+        {/* Content */}
+        <div className="px-6 pb-6 space-y-8">
+          {/* Todo Input */}
+          <div className="space-y-3">
+            <label className="block text-base font-semibold text-foreground">
+              무엇을 하시겠어요?
+            </label>
+            <input
+              type="text"
+              placeholder="할 일을 입력해주세요"
               value={newTodo}
               onChange={(e) => {
                 setNewTodo(e.target.value)
                 setAlertMessage(null)
               }}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleAdd()}
-              className="border-border focus:border-ring"
               autoFocus
+              className="w-full h-14 px-4 text-base bg-accent/30 dark:bg-accent/50 border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/60"
             />
+            {alertMessage && (
+              <p className="text-sm text-red-600 dark:text-red-500 font-medium animate-in fade-in-0 slide-in-from-top-1">
+                {alertMessage}
+              </p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">카테고리 (선택사항)</label>
-            <Input
-              placeholder="카테고리를 입력하세요 (예: 업무, 개인, 공부)"
+          {/* Category Input */}
+          <div className="space-y-3">
+            <label className="block text-base font-semibold text-foreground">
+              카테고리 <span className="text-sm font-normal text-muted-foreground">(선택)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="업무, 개인, 학습 등"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              className="border-border focus:border-ring"
+              className="w-full h-14 px-4 text-base bg-accent/30 dark:bg-accent/50 border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/60"
             />
-            <p className="text-xs text-muted-foreground">
-              입력한 카테고리는 배지로 표시됩니다
-            </p>
           </div>
 
+          {/* Priority Selection */}
           <div className="space-y-3">
-            <label className="text-sm font-medium">우선순위</label>
-            <RadioGroup value={priority} onValueChange={(value) => setPriority(value as TodoPriority)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="A" id="priority-a" />
-                <Label htmlFor="priority-a" className="flex items-center gap-2 cursor-pointer">
-                  <span className="w-12 h-6 rounded-full bg-red-500/20 border border-red-500 flex items-center justify-center text-xs font-bold text-red-600">A</span>
-                  <span className="text-sm">높음</span>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="B" id="priority-b" />
-                <Label htmlFor="priority-b" className="flex items-center gap-2 cursor-pointer">
-                  <span className="w-12 h-6 rounded-full bg-orange-500/20 border border-orange-500 flex items-center justify-center text-xs font-bold text-orange-600">B</span>
-                  <span className="text-sm">보통</span>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="C" id="priority-c" />
-                <Label htmlFor="priority-c" className="flex items-center gap-2 cursor-pointer">
-                  <span className="w-12 h-6 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center text-xs font-bold text-green-600">C</span>
-                  <span className="text-sm">낮음</span>
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
+            <label className="block text-base font-semibold text-foreground">
+              우선순위
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setPriority('A')}
+                className={`h-20 rounded-2xl font-semibold text-base transition-all ${
+                  priority === 'A'
+                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
+                    : 'bg-accent/40 dark:bg-accent/60 text-muted-foreground hover:bg-accent/60 dark:hover:bg-accent/80'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="text-xl font-bold">A</div>
+                  <div className="text-xs opacity-80">긴급</div>
+                </div>
+              </button>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-            >
-              취소
-            </Button>
-            <Button onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              {editingTodo ? '수정' : '추가'}
-            </Button>
+              <button
+                type="button"
+                onClick={() => setPriority('B')}
+                className={`h-20 rounded-2xl font-semibold text-base transition-all ${
+                  priority === 'B'
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
+                    : 'bg-accent/40 dark:bg-accent/60 text-muted-foreground hover:bg-accent/60 dark:hover:bg-accent/80'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="text-xl font-bold">B</div>
+                  <div className="text-xs opacity-80">중요</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPriority('C')}
+                className={`h-20 rounded-2xl font-semibold text-base transition-all ${
+                  priority === 'C'
+                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                    : 'bg-accent/40 dark:bg-accent/60 text-muted-foreground hover:bg-accent/60 dark:hover:bg-accent/80'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="text-xl font-bold">C</div>
+                  <div className="text-xs opacity-80">보통</div>
+                </div>
+              </button>
+            </div>
           </div>
+        </div>
+
+        {/* Footer Action Button */}
+        <div className="p-6 pt-0">
+          <Button
+            onClick={handleAdd}
+            className="w-full h-14 text-base font-bold rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
+          >
+            {editingTodo ? '수정 완료' : '추가하기'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

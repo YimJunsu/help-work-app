@@ -13,6 +13,7 @@ interface ScheduleCalendarViewProps {
   onScheduleClick: (schedule: Schedule) => void
   onScheduleDelete: (id: number) => void
   onDateClick: (date: Date) => void
+  onEmptyDateClick?: (date: Date) => void
 }
 
 export function ScheduleCalendarView({
@@ -21,7 +22,8 @@ export function ScheduleCalendarView({
   onMonthChange,
   onScheduleClick,
   onScheduleDelete,
-  onDateClick
+  onDateClick,
+  onEmptyDateClick
 }: ScheduleCalendarViewProps) {
   const calendarDays = generateCalendarDays(currentMonth)
 
@@ -74,9 +76,16 @@ export function ScheduleCalendarView({
           return (
             <div
               key={day.toISOString()}
-              className={`min-h-[70px] border border-border rounded-lg p-1 ${
+              className={`min-h-[70px] border border-border rounded-lg p-1 cursor-pointer hover:bg-accent/50 transition-colors ${
                 isCurrentMonth ? 'bg-card' : 'bg-muted/30'
               } ${isToday ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => {
+                if (daySchedules.length === 0 && onEmptyDateClick) {
+                  onEmptyDateClick(day)
+                } else if (daySchedules.length > 0) {
+                  onDateClick(day)
+                }
+              }}
             >
               <div
                 className={`text-xs font-semibold mb-1 ${
@@ -95,11 +104,12 @@ export function ScheduleCalendarView({
                         : getCalendarItemColor(schedule.category)
                     }`}
                     title={`${schedule.clientName ? `[${schedule.clientName}] ` : ''}${schedule.text}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onScheduleClick(schedule)
+                    }}
                   >
-                    <div
-                      onClick={() => onScheduleClick(schedule)}
-                      className="pr-4"
-                    >
+                    <div className="pr-4">
                       {schedule.clientName ? `${schedule.clientName.substring(0, 7)}` : schedule.text.substring(0, 9)}
                     </div>
                     <button
@@ -116,7 +126,10 @@ export function ScheduleCalendarView({
                 {daySchedules.length > 2 && (
                   <div
                     className="text-[10px] text-primary font-semibold text-center cursor-pointer hover:bg-primary/10 rounded py-0.5 transition-colors"
-                    onClick={() => onDateClick(day)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDateClick(day)
+                    }}
                   >
                     +{daySchedules.length - 2}
                   </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   SidebarProvider,
   Sidebar,
@@ -23,12 +23,13 @@ import { TodoList } from "./pages/TodoList"
 import { Dashboard } from "./pages/Dashboard"
 import Memo from "./pages/Memo"
 import { Settings } from "./pages/Settings"
-import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Calendar, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown } from "lucide-react"
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown, CirclePlus, CalendarDays } from "lucide-react"
+import { Badge } from "./components/ui/badge"
 import { ThemeSelector } from "./pages/ThemeSelector"
 import { Button } from "./components/ui/button"
 import { toggleDarkMode, getDarkMode, applyTheme, applyShadcnTheme, tweakCNThemes } from "./lib/theme"
+import { useUserInfo } from "./hooks/useUserInfo"
+import { getGreetingMessage } from "./utils/greetingUtils"
 
 function App(): React.JSX.Element {
   // localStorage에서 테마를 불러오도록 초기값 설정
@@ -36,7 +37,7 @@ function App(): React.JSX.Element {
     return localStorage.getItem('selected-theme') || 'shadcn'
   })
 
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'fetch' | 'userinfo'>('dashboard')
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'unisupport' | 'memo' | 'fetch' | 'userinfo'>('dashboard')
   const [showThemeDialog, setShowThemeDialog] = useState(false)
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
   const [hasTodoDialog, setHasTodoDialog] = useState(false)
@@ -44,6 +45,13 @@ function App(): React.JSX.Element {
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
   const [isGameMenuOpen, setIsGameMenuOpen] = useState(false)
+  const [todoStats, setTodoStats] = useState({ completed: 0, total: 0 })
+  const [scheduleStats, setScheduleStats] = useState({ completed: 0, total: 0 })
+  const [memoCount, setMemoCount] = useState(0)
+  const todoListRef = useRef<{ openAddDialog: () => void }>(null)
+  const scheduleCheckRef = useRef<{ openAddDialog: () => void; toggleViewMode: () => void }>(null)
+  const memoRef = useRef<{ openAddDialog: () => void }>(null)
+  const { userBirthday } = useUserInfo()
 
   // 초기 렌더 시 localStorage에 저장된 테마를 실제로 적용
   useEffect(() => {
@@ -194,6 +202,15 @@ function App(): React.JSX.Element {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton
+                      isActive={currentPage === 'unisupport'}
+                      onClick={() => setCurrentPage('unisupport')}
+                    >
+                      <Headset />
+                      <span>UniSupport</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
                       isActive={currentPage === 'memo'}
                       onClick={() => setCurrentPage('memo')}
                     >
@@ -268,78 +285,61 @@ function App(): React.JSX.Element {
 
         <SidebarInset>
           <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <SidebarTrigger className="-ml-1" />
-            <div
-              className="flex items-center gap-1 cursor-pointer animate-pulse"
-              onClick={() => setShowThemeDialog(true)}
-              title="테마 변경"
-            >
-              {currentTheme === 'shadcn' ? (
+            <div className="flex items-center gap-3 flex-1">
+              {currentPage === 'dashboard' && (
+                <h1 className="text-lg font-semibold">
+                  {getGreetingMessage(userName, userBirthday).message}
+                </h1>
+              )}
+              {currentPage === 'todo' && (
                 <>
-                  <div className="w-3 h-3 rounded-full bg-gray-900 dark:bg-gray-100 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-700 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-gray-100 dark:bg-gray-800 border border-border"></div>
+                  <h1 className="text-lg font-semibold">Daily TodoList</h1>
+                  <Badge variant="secondary" className="text-sm font-medium">
+                    {todoStats.completed}/{todoStats.total} 완료
+                  </Badge>
                 </>
-              ) : currentTheme === 'Default' ? (
+              )}
+              {currentPage === 'ScheduleCheck' && (
                 <>
-                  <div className="w-3 h-3 rounded-full bg-gray-900 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-gray-600 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-gray-300 border border-border"></div>
+                  <h1 className="text-lg font-semibold">Schedule Check</h1>
+                  <Badge variant="secondary" className="text-sm font-medium">
+                    {scheduleStats.completed}/{scheduleStats.total} 완료
+                  </Badge>
                 </>
-              ) : currentTheme === 'Blue' ? (
+              )}
+              {currentPage === 'memo' && (
                 <>
-                  <div className="w-3 h-3 rounded-full bg-blue-600 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-blue-400 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-blue-200 border border-border"></div>
-                </>
-              ) : currentTheme === 'Green' ? (
-                <>
-                  <div className="w-3 h-3 rounded-full bg-green-600 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-200 border border-border"></div>
-                </>
-              ) : currentTheme === 'Purple' ? (
-                <>
-                  <div className="w-3 h-3 rounded-full bg-purple-600 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-purple-400 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-purple-200 border border-border"></div>
-                </>
-              ) : currentTheme === 'Twitter' ? (
-                <>
-                  <div className="w-3 h-3 rounded-full bg-blue-500 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-sky-400 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-blue-300 border border-border"></div>
-                </>
-              ) : currentTheme === 'Claude' ? (
-                <>
-                  <div className="w-3 h-3 rounded-full bg-orange-600 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-orange-400 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-orange-200 border border-border"></div>
-                </>
-              ) : currentTheme === 'DOOM64' ? (
-                <>
-                  <div className="w-3 h-3 rounded-full bg-red-600 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500 border border-border"></div>
-                </>
-              ) : currentTheme === 'Kodama-Grove' ? (
-                <>
-                  <div className="w-3 h-3 rounded-full bg-green-700 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-white border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-950 border border-border"></div>
-                </>
-              ) : (
-                <>
-                  <div className="w-3 h-3 rounded-full bg-primary border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-primary/70 border border-border"></div>
-                  <div className="w-3 h-3 rounded-full bg-primary/40 border border-border"></div>
+                  <h1 className="text-lg font-semibold">Memo</h1>
+                  <Badge variant="secondary" className="text-sm font-medium">
+                    {memoCount}개
+                  </Badge>
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-1">
-              <Calendar className="w-4 h-4" />
-              <span>{format(new Date(), "yyyy년 MM월 dd일 (EEE)", { locale: ko })}</span>
-            </div>
+            {currentPage === 'ScheduleCheck' && (
+              <Button
+                onClick={() => scheduleCheckRef.current?.toggleViewMode()}
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              >
+                <CalendarDays className="w-5 h-5" />
+              </Button>
+            )}
+            {(currentPage === 'todo' || currentPage === 'ScheduleCheck' || currentPage === 'memo') && (
+              <Button
+                onClick={() => {
+                  if (currentPage === 'todo') todoListRef.current?.openAddDialog()
+                  else if (currentPage === 'ScheduleCheck') scheduleCheckRef.current?.openAddDialog()
+                  else if (currentPage === 'memo') memoRef.current?.openAddDialog()
+                }}
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              >
+                <CirclePlus className="w-5 h-5" />
+              </Button>
+            )}
             <Button
               onClick={handleDarkModeToggle}
               variant="ghost"
@@ -348,16 +348,17 @@ function App(): React.JSX.Element {
             >
               {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
+            <SidebarTrigger className="-ml-1" />
           </header>
           <main className="flex-1 p-4 overflow-auto">
             {currentPage === 'dashboard' ? (
               <Dashboard onNavigate={setCurrentPage} />
             ) : currentPage === 'todo' ? (
-              <TodoList onDialogChange={setHasTodoDialog} />
+              <TodoList ref={todoListRef} onDialogChange={setHasTodoDialog} onStatsChange={setTodoStats} />
             ) : currentPage === 'ScheduleCheck' ? (
-              <ScheduleCheck onDialogChange={setHasTodoDialog} />
+              <ScheduleCheck ref={scheduleCheckRef} onDialogChange={setHasTodoDialog} onStatsChange={setScheduleStats} />
             ) : currentPage === 'memo' ? (
-              <Memo onDialogChange={setHasTodoDialog} />
+              <Memo ref={memoRef} onDialogChange={setHasTodoDialog} onCountChange={setMemoCount} />
             ) : null}
           </main>
 

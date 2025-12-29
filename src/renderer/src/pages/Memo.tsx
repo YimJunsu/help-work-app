@@ -1,8 +1,6 @@
-import { useState } from 'react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Badge } from '../components/ui/badge'
-import { Plus, FileText } from 'lucide-react'
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { Card, CardContent, CardHeader } from '../components/ui/card'
+import { FileText } from 'lucide-react'
 import { MemoAdd } from './MemoAdd'
 import { MemoDetail } from './MemoDetail'
 import { MemoCard } from '../components/memo'
@@ -12,9 +10,10 @@ import type { Memo } from '../hooks/useMemos'
 
 interface MemoProps {
   onDialogChange?: (isOpen: boolean) => void
+  onCountChange?: (count: number) => void
 }
 
-export default function Memo({ onDialogChange }: MemoProps) {
+const Memo = forwardRef<{ openAddDialog: () => void }, MemoProps>(function Memo({ onDialogChange, onCountChange }, ref) {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [selectedMemo, setSelectedMemo] = useState<Memo | null>(null)
@@ -52,26 +51,20 @@ export default function Memo({ onDialogChange }: MemoProps) {
 
   const memoCount = memos.length
 
+  // Notify parent when count changes
+  useEffect(() => {
+    onCountChange?.(memoCount)
+  }, [memoCount, onCountChange])
+
+  // Expose openAddDialog to parent
+  useImperativeHandle(ref, () => ({
+    openAddDialog: () => setShowAddDialog(true)
+  }))
+
   return (
     <div className="w-full h-full flex flex-col">
       <Card className="flex-1 border-0 bg-card">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between min-h-[60px]">
-            <div className="flex flex-col justify-center">
-              <CardTitle className="text-2xl font-bold text-card-foreground leading-tight">Memo</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                나의 메모장
-              </p>
-            </div>
-            <div className="flex items-center gap-2 h-full">
-              <Badge variant="secondary" className="text-sm font-medium">
-                {memoCount}개
-              </Badge>
-              <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-md transition-all duration-200">
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+        <CardHeader className="pb-2 pt-2">
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -121,4 +114,6 @@ export default function Memo({ onDialogChange }: MemoProps) {
       />
     </div>
   )
-}
+})
+
+export default Memo

@@ -15,20 +15,27 @@
       width: 100vw;
       height: 100vh;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #1e1e2e; /* body 배경 */
       overflow: hidden;
-      transition: background-color 0.3s ease, color 0.3s ease;
-      background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
     }
 
-    .container {
+    /* 스플래시 화면 전체 */
+    .splash {
+      width: 90vw;
+      max-width: 480px;
+      height: 80vh;
+      max-height: 600px;
+      border-radius: 48px; /* 모서리 둥글게 */
+      overflow: hidden;    /* 내부 요소가 튀어나오지 않게 */
+      background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      position: relative;
     }
 
     .logo-container {
@@ -107,7 +114,7 @@
 
     .version {
       position: absolute;
-      bottom: 24px;
+      bottom: 16px;
       font-size: 12px;
       color: rgba(255, 255, 255, 0.3);
       font-weight: 500;
@@ -153,33 +160,33 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo-container">
-      <img src="icon.png" alt="Work Management" class="logo">
-    </div>
+<div class="splash">
+  <div class="logo-container">
+    <img src="icon.png" alt="Work Management" class="logo">
+  </div>
 
-    <div class="title-container">
-      <div class="title">Help Work App</div>
-      <div class="subtitle">WORK HELPER</div>
-    </div>
+  <div class="title-container">
+    <div class="title">Help Work App</div>
+    <div class="subtitle">WORK HELPER</div>
+  </div>
 
-    <div class="loader-container">
-      <div class="loader">
-        <div class="loader-bar"></div>
-      </div>
-      <div class="loading-text">Loading...</div>
+  <div class="loader-container">
+    <div class="loader">
+      <div class="loader-bar"></div>
     </div>
+    <div class="loading-text">Loading...</div>
   </div>
 
   <div class="version">v1.1.1</div>
+</div>
 
-  <script>
-    // IPC를 통해 다크모드 설정 받기 (선택적)
-    if (window.electronAPI) {
-      window.electronAPI.onThemeChange((isDark) => {
-        // 로딩 화면은 항상 다크 테마를 사용하므로 아무 동작 안 함
-      });
-    }
-  </script>
+<script>
+  // IPC를 통해 다크모드 설정 받기 (선택적)
+  if (window.electronAPI) {
+    window.electronAPI.onThemeChange((isDark) => {
+      // 로딩 화면은 항상 다크 테마를 사용
+    });
+  }
+</script>
 </body>
 </html>
