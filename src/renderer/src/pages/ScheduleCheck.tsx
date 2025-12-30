@@ -53,7 +53,7 @@ export const ScheduleCheck = forwardRef<{ openAddDialog: () => void; toggleViewM
     onDialogChange?.(showAddDialog)
   }, [showAddDialog, onDialogChange])
 
-  const handleAddOrUpdateSchedule = async (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; webData?: boolean }) => {
+  const handleAddOrUpdateSchedule = async (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; requestNumber?: string; webData?: boolean }) => {
     await addOrUpdateSchedule(schedule, editingSchedule)
     setEditingSchedule(null)
   }

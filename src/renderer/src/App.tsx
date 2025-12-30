@@ -23,9 +23,9 @@ import { TodoList } from "./pages/TodoList"
 import { Dashboard } from "./pages/Dashboard"
 import Memo from "./pages/Memo"
 import { Settings } from "./pages/Settings"
+import { UniSupport } from "./pages/UniSupport"
 import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown, CirclePlus, CalendarDays } from "lucide-react"
 import { Badge } from "./components/ui/badge"
-import { ThemeSelector } from "./pages/ThemeSelector"
 import { Button } from "./components/ui/button"
 import { toggleDarkMode, getDarkMode, applyTheme, applyShadcnTheme, tweakCNThemes } from "./lib/theme"
 import { useUserInfo } from "./hooks/useUserInfo"
@@ -37,9 +37,9 @@ function App(): React.JSX.Element {
     return localStorage.getItem('selected-theme') || 'shadcn'
   })
 
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'unisupport' | 'memo' | 'fetch' | 'userinfo'>('dashboard')
-  const [showThemeDialog, setShowThemeDialog] = useState(false)
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'unisupport' | 'memo' | 'fetch' | 'userinfo' | 'minigame'>('dashboard')
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
+  const [settingsInitialPage, setSettingsInitialPage] = useState<'userinfo' | 'fetch' | 'theme'>('userinfo')
   const [hasTodoDialog, setHasTodoDialog] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(() => getDarkMode())
   const [updateAvailable, setUpdateAvailable] = useState(false)
@@ -120,22 +120,17 @@ function App(): React.JSX.Element {
     }
   }, [])
 
-  // ` 키로 테마 다이얼로그 열기, ESC 키로 창 최소화
+  // ` 키로 테마 페이지 열기, ESC 키로 창 최소화
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === '`') {
-        if (showThemeDialog) {
-          event.preventDefault()
-          setShowThemeDialog(false)
-          return
-        }
+        event.preventDefault()
         if (!hasTodoDialog) {
-          event.preventDefault()
-          setShowThemeDialog(true)
+          setSettingsInitialPage('theme')
+          setShowSettingsDialog(true)
         }
       } else if (event.key === 'Escape') {
-        // ESC 키로 창 최소화
-        if (!hasTodoDialog && !showThemeDialog && !showSettingsDialog) {
+        if (!hasTodoDialog && !showSettingsDialog) {
           event.preventDefault()
           if (window.electron) {
             window.electron.ipcRenderer.send('minimize-window')
@@ -146,11 +141,7 @@ function App(): React.JSX.Element {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [hasTodoDialog, showThemeDialog, showSettingsDialog])
-
-  const handleThemeDialogChange = (open: boolean) => {
-    setShowThemeDialog(open)
-  }
+  }, [hasTodoDialog, showSettingsDialog])
 
   // 테마 변경 시 상태 업데이트 및 localStorage 저장
   const handleThemeChange = (themeName: string) => {
@@ -202,20 +193,20 @@ function App(): React.JSX.Element {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      isActive={currentPage === 'unisupport'}
-                      onClick={() => setCurrentPage('unisupport')}
-                    >
-                      <Headset />
-                      <span>UniSupport</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
                       isActive={currentPage === 'memo'}
                       onClick={() => setCurrentPage('memo')}
                     >
                       <FileText />
                       <span>Memo</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      isActive={currentPage === 'unisupport'}
+                      onClick={() => setCurrentPage('unisupport')}
+                    >
+                      <Headset />
+                      <span>UniSupport</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
@@ -256,7 +247,10 @@ function App(): React.JSX.Element {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setShowSettingsDialog(true)}>
+                    <SidebarMenuButton onClick={() => {
+                      setSettingsInitialPage('userinfo')
+                      setShowSettingsDialog(true)
+                    }}>
                       <SettingsIcon />
                       <span className="flex items-center gap-2">
                         Settings
@@ -315,6 +309,9 @@ function App(): React.JSX.Element {
                   </Badge>
                 </>
               )}
+              {currentPage === 'unisupport' && (
+                <h1 className="text-lg font-semibold">UniSupport 요청 내역</h1>
+              )}
             </div>
             {currentPage === 'ScheduleCheck' && (
               <Button
@@ -357,6 +354,8 @@ function App(): React.JSX.Element {
               <TodoList ref={todoListRef} onDialogChange={setHasTodoDialog} onStatsChange={setTodoStats} />
             ) : currentPage === 'ScheduleCheck' ? (
               <ScheduleCheck ref={scheduleCheckRef} onDialogChange={setHasTodoDialog} onStatsChange={setScheduleStats} />
+            ) : currentPage === 'unisupport' ? (
+              <UniSupport />
             ) : currentPage === 'memo' ? (
               <Memo ref={memoRef} onDialogChange={setHasTodoDialog} onCountChange={setMemoCount} />
             ) : null}
@@ -410,13 +409,7 @@ function App(): React.JSX.Element {
         updateAvailable={updateAvailable}
         currentTheme={currentTheme}
         onThemeChange={handleThemeChange}
-      />
-
-      <ThemeSelector
-        open={showThemeDialog}
-        onOpenChange={handleThemeDialogChange}
-        currentTheme={currentTheme}
-        onThemeChange={handleThemeChange}
+        initialPage={settingsInitialPage}
       />
     </SidebarProvider>
   )

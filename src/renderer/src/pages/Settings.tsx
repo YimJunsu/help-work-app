@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Dialog, DialogContent } from '../components/ui/dialog'
 import { Button } from '../components/ui/button'
 import { Settings as SettingsIcon, Palette, Download, User, Power } from 'lucide-react'
@@ -23,22 +23,21 @@ interface SettingsProps {
   updateAvailable: boolean
   currentTheme: string
   onThemeChange: (theme: string) => void
+  initialPage?: SettingsPage
 }
 
 type SettingsPage = 'userinfo' | 'fetch' | 'theme'
 
-export function Settings({ open, onOpenChange, updateAvailable, currentTheme, onThemeChange }: SettingsProps) {
-  const [currentPage, setCurrentPage] = useState<SettingsPage>('userinfo')
-  const [showThemeDialog, setShowThemeDialog] = useState(false)
+export function Settings({ open, onOpenChange, updateAvailable, currentTheme, onThemeChange, initialPage = 'userinfo' }: SettingsProps) {
+  const [currentPage, setCurrentPage] = useState<SettingsPage>(initialPage)
   const [showQuitDialog, setShowQuitDialog] = useState(false)
 
-  const handleThemeClick = () => {
-    setShowThemeDialog(true)
-  }
-
-  const handleThemeDialogChange = (open: boolean) => {
-    setShowThemeDialog(open)
-  }
+  // initialPage가 변경되면 currentPage도 업데이트
+  React.useEffect(() => {
+    if (open) {
+      setCurrentPage(initialPage)
+    }
+  }, [open, initialPage])
 
   const handleQuitClick = () => {
     setShowQuitDialog(true)
@@ -53,85 +52,78 @@ export function Settings({ open, onOpenChange, updateAvailable, currentTheme, on
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl h-[80vh] p-0 gap-0">
-          <div className="flex h-full">
+        <DialogContent className="max-w-4xl h-[75vh] max-h-[700px] p-0 gap-0 flex flex-col">
+          <div className="flex flex-1 min-h-0">
             {/* 사이드바 */}
-            <div className="w-64 border-r bg-muted/30 p-4 flex flex-col">
-              <div className="flex items-center gap-2 mb-6 px-2">
-                <SettingsIcon className="w-5 h-5" />
-                <h2 className="text-lg font-semibold">Settings</h2>
+            <div className="w-56 border-r bg-muted/20 p-4 flex flex-col gap-4 shrink-0">
+              <div className="flex items-center gap-2 px-1">
+                <SettingsIcon className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold">설정</h2>
               </div>
 
-              <nav className="space-y-1 flex-1">
+              <nav className="space-y-1">
                 <Button
                   variant={currentPage === 'userinfo' ? 'secondary' : 'ghost'}
                   className={cn(
-                    'w-full justify-start',
-                    currentPage === 'userinfo' && 'bg-secondary'
+                    'w-full justify-start h-10 text-sm',
+                    currentPage === 'userinfo' && 'bg-secondary shadow-sm'
                   )}
                   onClick={() => setCurrentPage('userinfo')}
                 >
-                  <User className="w-4 h-4 mr-2" />
+                  <User className="w-4 h-4 mr-2.5" />
                   사용자 정보
                 </Button>
 
                 <Button
                   variant={currentPage === 'theme' ? 'secondary' : 'ghost'}
                   className={cn(
-                    'w-full justify-start',
-                    currentPage === 'theme' && 'bg-secondary'
+                    'w-full justify-start h-10 text-sm',
+                    currentPage === 'theme' && 'bg-secondary shadow-sm'
                   )}
-                  onClick={handleThemeClick}
+                  onClick={() => setCurrentPage('theme')}
                 >
-                  <Palette className="w-4 h-4 mr-2" />
+                  <Palette className="w-4 h-4 mr-2.5" />
                   테마
                 </Button>
 
                 <Button
                   variant={currentPage === 'fetch' ? 'secondary' : 'ghost'}
                   className={cn(
-                    'w-full justify-start',
-                    currentPage === 'fetch' && 'bg-secondary'
+                    'w-full justify-start h-10 text-sm',
+                    currentPage === 'fetch' && 'bg-secondary shadow-sm'
                   )}
                   onClick={() => setCurrentPage('fetch')}
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className="w-4 h-4 mr-2.5" />
                   업데이트
                   {updateAvailable && (
-                    <span className="ml-auto w-2 h-2 bg-red-500 rounded-full"></span>
+                    <span className="ml-auto w-2 h-2 bg-destructive rounded-full animate-pulse"></span>
                   )}
                 </Button>
               </nav>
 
               {/* 종료 버튼 */}
-              <div className="pt-4 border-t mt-4">
+              <div className="mt-auto pt-4 border-t">
                 <Button
-                  variant="destructive"
-                  className="w-full justify-start"
+                  variant="outline"
+                  className="w-full justify-start h-10 text-sm text-destructive hover:bg-destructive hover:text-destructive-foreground"
                   onClick={handleQuitClick}
                 >
-                  <Power className="w-4 h-4 mr-2" />
+                  <Power className="w-4 h-4 mr-2.5" />
                   프로그램 종료
                 </Button>
               </div>
             </div>
 
             {/* 메인 컨텐츠 */}
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
               {currentPage === 'userinfo' && <UserInfo />}
+              {currentPage === 'theme' && <ThemeSelector currentTheme={currentTheme} onThemeChange={onThemeChange} />}
               {currentPage === 'fetch' && <FetchSettings />}
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* 테마 선택 다이얼로그 */}
-      <ThemeSelector
-        open={showThemeDialog}
-        onOpenChange={handleThemeDialogChange}
-        currentTheme={currentTheme}
-        onThemeChange={onThemeChange}
-      />
 
       {/* 종료 확인 다이얼로그 */}
       <AlertDialog open={showQuitDialog} onOpenChange={setShowQuitDialog}>

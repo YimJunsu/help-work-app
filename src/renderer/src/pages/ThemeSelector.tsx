@@ -1,49 +1,43 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog'
-import { Card, CardContent } from '../components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { tweakCNThemes, applyTheme, applyShadcnTheme, type Theme } from '../lib/theme'
 import { Palette, Check } from 'lucide-react'
 
 interface ThemeSelectorProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
   currentTheme: string
   onThemeChange: (theme: string) => void
 }
 
-export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange }: ThemeSelectorProps) {
+export function ThemeSelector({ currentTheme, onThemeChange }: ThemeSelectorProps) {
   const handleThemeSelect = (theme: Theme) => {
     applyTheme(theme)
-    localStorage.setItem('selected-theme', theme.name) // ✅ 저장
+    localStorage.setItem('selected-theme', theme.name)
     onThemeChange(theme.name)
-    onOpenChange(false)
   }
 
   const handleShadcnSelect = () => {
     applyShadcnTheme()
-    localStorage.setItem('selected-theme', 'shadcn') // ✅ 저장
+    localStorage.setItem('selected-theme', 'shadcn')
     onThemeChange('shadcn')
-    onOpenChange(false)
   }
 
-
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* ✅ 수정 1: 스크롤바 깨짐 방지를 위해 pr-2 (오른쪽 패딩) 추가.
-        ✅ 수정 2: radius를 rounded-xl로 적용.
-      */}
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto pr-4 rounded-xl bg-background/95 backdrop-blur-md border-2 shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <Palette className="w-6 h-6 text-primary" />
-            커스텀 테마 선택
-          </DialogTitle>
-          <DialogDescription>
-            나만의 색상 테마를 선택하세요. 기본 테마 또는 개성있는 다양한 테마 중에서 선택할 수 있어요!
-          </DialogDescription>
-        </DialogHeader>
+    <div className="w-full p-6">
+      <Card className="border shadow-sm">
+        <CardHeader className="pb-3 border-b">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Palette className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">테마 설정</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                나만의 색상 테마를 선택하세요
+              </p>
+            </div>
+          </div>
+        </CardHeader>
 
-        <div className="space-y-6">
+        <CardContent className="p-5 space-y-5">
           {/* shadcn 기본 테마 */}
           <div>
             <Card
@@ -75,7 +69,7 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
 
           {/* TweakCN 테마들 */}
           <div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {tweakCNThemes.map((theme) => (
                 <Card
                   key={theme.name}
@@ -151,8 +145,8 @@ export function ThemeSelector({ open, onOpenChange, currentTheme, onThemeChange 
               ))}
             </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

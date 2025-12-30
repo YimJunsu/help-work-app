@@ -16,6 +16,7 @@ export interface Schedule {
   category?: string
   dueDate?: string // Store as ISO string
   clientName?: string
+  requestNumber?: string // 접수번호
   webData?: boolean // 웹데이터 유무
   createdAt: string
   updatedAt: string
@@ -38,6 +39,8 @@ export interface UserInfo {
   id: number
   name: string
   birthday: string // YYYY-MM-DD format
+  supportId?: string // UniPost support account ID
+  supportPw?: string // UniPost support account password (encrypted)
   createdAt: string
   updatedAt: string
 }
@@ -75,6 +78,7 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
         category TEXT,
         dueDate TEXT,
         clientName TEXT,
+        requestNumber TEXT,
         webData INTEGER DEFAULT 0,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
@@ -86,8 +90,8 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
       if (schedules.length > 0) {
         console.log(`Migrating ${schedules.length} schedules...`)
         const insertStmt = newSchedulesDb.prepare(`
-          INSERT INTO schedules (id, text, completed, category, dueDate, clientName, webData, createdAt, updatedAt)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO schedules (id, text, completed, category, dueDate, clientName, requestNumber, webData, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
 
         for (const schedule of schedules as any[]) {
@@ -98,6 +102,7 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
             schedule.category,
             schedule.dueDate,
             schedule.clientName,
+            schedule.requestNumber || null,
             schedule.webData,
             schedule.createdAt,
             schedule.updatedAt
@@ -182,6 +187,8 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         birthday TEXT NOT NULL,
+        supportId TEXT,
+        supportPw TEXT,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )
@@ -192,12 +199,20 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
       if (userInfo.length > 0) {
         console.log(`Migrating ${userInfo.length} user info records...`)
         const insertStmt = newUserInfoDb.prepare(`
-          INSERT INTO user_info (id, name, birthday, createdAt, updatedAt)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO user_info (id, name, birthday, supportId, supportPw, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `)
 
         for (const info of userInfo as any[]) {
-          insertStmt.run(info.id, info.name, info.birthday, info.createdAt, info.updatedAt)
+          insertStmt.run(
+            info.id,
+            info.name,
+            info.birthday,
+            info.supportId || null,
+            info.supportPw || null,
+            info.createdAt,
+            info.updatedAt
+          )
         }
       }
     } catch (error) {
@@ -248,6 +263,7 @@ export function initDatabase(): Database.Database {
       category TEXT,
       dueDate TEXT,
       clientName TEXT,
+      requestNumber TEXT,
       webData INTEGER DEFAULT 0,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
@@ -257,6 +273,13 @@ export function initDatabase(): Database.Database {
   // Add clientName column if it doesn't exist (for existing databases)
   try {
     schedulesDb.exec(`ALTER TABLE schedules ADD COLUMN clientName TEXT`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  // Add requestNumber column if it doesn't exist (for existing databases)
+  try {
+    schedulesDb.exec(`ALTER TABLE schedules ADD COLUMN requestNumber TEXT`)
   } catch (error) {
     // Column already exists, ignore error
   }
@@ -302,10 +325,26 @@ export function initDatabase(): Database.Database {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       birthday TEXT NOT NULL,
+      supportId TEXT,
+      supportPw TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )
   `)
+
+  // Add supportId column if it doesn't exist (for existing databases)
+  try {
+    userInfoDb.exec(`ALTER TABLE user_info ADD COLUMN supportId TEXT`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  // Add supportPw column if it doesn't exist (for existing databases)
+  try {
+    userInfoDb.exec(`ALTER TABLE user_info ADD COLUMN supportPw TEXT`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
 
   console.log('All databases initialized')
 
@@ -374,6 +413,7 @@ export function createSchedule(schedule: {
   category?: string
   dueDate?: Date
   clientName?: string
+  requestNumber?: string
   webData?: boolean
 }): Schedule {
   if (!schedulesDb) throw new Error('Schedules database not initialized')
@@ -381,8 +421,8 @@ export function createSchedule(schedule: {
   const now = new Date().toISOString()
 
   const stmt = schedulesDb.prepare(`
-    INSERT INTO schedules (text, completed, category, dueDate, clientName, webData, createdAt, updatedAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO schedules (text, completed, category, dueDate, clientName, requestNumber, webData, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const result = stmt.run(
@@ -391,6 +431,7 @@ export function createSchedule(schedule: {
     schedule.category || null,
     schedule.dueDate ? schedule.dueDate.toISOString() : null,
     schedule.clientName || null,
+    schedule.requestNumber || null,
     schedule.webData ? 1 : 0,
     now,
     now
@@ -404,6 +445,9 @@ export function updateSchedule(id: number, updates: {
   completed?: boolean
   category?: string
   dueDate?: Date | null
+  clientName?: string
+  requestNumber?: string
+  webData?: boolean
 }): Schedule {
   if (!schedulesDb) throw new Error('Schedules database not initialized')
 
@@ -427,6 +471,18 @@ export function updateSchedule(id: number, updates: {
   if (updates.dueDate !== undefined) {
     fields.push('dueDate = ?')
     values.push(updates.dueDate ? updates.dueDate.toISOString() : null)
+  }
+  if (updates.clientName !== undefined) {
+    fields.push('clientName = ?')
+    values.push(updates.clientName || null)
+  }
+  if (updates.requestNumber !== undefined) {
+    fields.push('requestNumber = ?')
+    values.push(updates.requestNumber || null)
+  }
+  if (updates.webData !== undefined) {
+    fields.push('webData = ?')
+    values.push(updates.webData ? 1 : 0)
   }
 
   fields.push('updatedAt = ?')
@@ -561,7 +617,12 @@ export function getUserInfo(): UserInfo | undefined {
   return stmt.get() as UserInfo | undefined
 }
 
-export function createOrUpdateUserInfo(userInfo: { name: string; birthday: string }): UserInfo {
+export function createOrUpdateUserInfo(userInfo: {
+  name: string;
+  birthday: string;
+  supportId?: string;
+  supportPw?: string;
+}): UserInfo {
   if (!userInfoDb) throw new Error('User info database not initialized')
 
   const now = new Date().toISOString()
@@ -570,19 +631,40 @@ export function createOrUpdateUserInfo(userInfo: { name: string; birthday: strin
 
   if (existing) {
     // Update existing user info
+    const fields: string[] = ['name = ?', 'birthday = ?', 'updatedAt = ?']
+    const values: any[] = [userInfo.name, userInfo.birthday, now]
+
+    if (userInfo.supportId !== undefined) {
+      fields.push('supportId = ?')
+      values.push(userInfo.supportId || null)
+    }
+    if (userInfo.supportPw !== undefined) {
+      fields.push('supportPw = ?')
+      values.push(userInfo.supportPw || null)
+    }
+
+    values.push(existing.id)
+
     const stmt = userInfoDb.prepare(`
       UPDATE user_info
-      SET name = ?, birthday = ?, updatedAt = ?
+      SET ${fields.join(', ')}
       WHERE id = ?
     `)
-    stmt.run(userInfo.name, userInfo.birthday, now, existing.id)
+    stmt.run(...values)
   } else {
     // Create new user info
     const stmt = userInfoDb.prepare(`
-      INSERT INTO user_info (name, birthday, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO user_info (name, birthday, supportId, supportPw, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?)
     `)
-    stmt.run(userInfo.name, userInfo.birthday, now, now)
+    stmt.run(
+      userInfo.name,
+      userInfo.birthday,
+      userInfo.supportId || null,
+      userInfo.supportPw || null,
+      now,
+      now
+    )
   }
 
   return getUserInfo()!

@@ -63,7 +63,7 @@ export function useScheduleManagement() {
   }, [])
 
   const addOrUpdateSchedule = async (
-    schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; webData?: boolean },
+    schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; requestNumber?: string; webData?: boolean },
     editingSchedule?: Schedule | null
   ) => {
     if (window.electron) {
@@ -74,6 +74,7 @@ export function useScheduleManagement() {
           category: schedule.category,
           dueDate: schedule.dueDate?.toISOString(),
           clientName: schedule.clientName,
+          requestNumber: schedule.requestNumber,
           webData: schedule.webData
         })
       } else {
@@ -84,6 +85,7 @@ export function useScheduleManagement() {
           category: schedule.category,
           dueDate: schedule.dueDate?.toISOString(),
           clientName: schedule.clientName,
+          requestNumber: schedule.requestNumber,
           webData: schedule.webData
         })
       }

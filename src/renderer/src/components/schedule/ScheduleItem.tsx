@@ -70,22 +70,65 @@ export function ScheduleItem({
           {/* Main Content */}
           <div className="flex-1 min-w-0 space-y-2">
             {/* Title */}
-            <div className={`font-medium transition-all duration-200 ${
-              schedule.completed
-                ? 'line-through text-muted-foreground'
-                : 'text-foreground'
-            }`}>
-              {schedule.clientName && (
-                <>
-                  <span className="font-bold text-primary">{schedule.clientName}</span>
-                  <span className="text-muted-foreground mx-1.5">·</span>
-                </>
-              )}
-              <span>{schedule.text}</span>
-            </div>
+            {schedule.requestNumber ? (
+              <button
+                onClick={() => {
+                  if (window.electron && schedule.requestNumber) {
+                    const url = `https://114.unipost.co.kr/home.uni?access=list&srIdx=${schedule.requestNumber}`
+                    window.electron.ipcRenderer.send('open-external', url)
+                  }
+                }}
+                className={`font-medium transition-all duration-200 text-left hover:text-primary hover:underline cursor-pointer ${
+                  schedule.completed
+                    ? 'line-through text-muted-foreground'
+                    : 'text-foreground'
+                }`}
+              >
+                {schedule.clientName && (
+                  <>
+                    <span className="font-bold text-primary">{schedule.clientName}</span>
+                    <span className="text-muted-foreground mx-1.5">·</span>
+                  </>
+                )}
+                <span>{schedule.text}</span>
+              </button>
+            ) : (
+              <div className={`font-medium transition-all duration-200 ${
+                schedule.completed
+                  ? 'line-through text-muted-foreground'
+                  : 'text-foreground'
+              }`}>
+                {schedule.clientName && (
+                  <>
+                    <span className="font-bold text-primary">{schedule.clientName}</span>
+                    <span className="text-muted-foreground mx-1.5">·</span>
+                  </>
+                )}
+                <span>{schedule.text}</span>
+              </div>
+            )}
 
             {/* Badges Row */}
             <div className="flex flex-wrap items-center gap-1.5">
+              {schedule.requestNumber && (
+                <button
+                  onClick={() => {
+                    if (window.electron && schedule.requestNumber) {
+                      const url = `https://114.unipost.co.kr/home.uni?access=list&srIdx=${schedule.requestNumber}`
+                      window.electron.ipcRenderer.send('open-external', url)
+                    }
+                  }}
+                  className="hover:opacity-70 transition-opacity"
+                >
+                  <Badge
+                    variant="outline"
+                    className="text-xs font-medium bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800 cursor-pointer"
+                  >
+                    #{schedule.requestNumber}
+                  </Badge>
+                </button>
+              )}
+
               {schedule.category && (
                 <Badge
                   variant="secondary"

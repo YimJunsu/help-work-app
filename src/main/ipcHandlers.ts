@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, screen } from 'electron'
+import { ipcMain, BrowserWindow, screen, shell } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
@@ -19,6 +19,14 @@ import {
   getUserInfo,
   createOrUpdateUserInfo
 } from './database'
+import {
+  loginToUniPost,
+  fetchRequestHistory,
+  logoutFromUniPost,
+  isUniPostLoggedIn,
+  toggleUniPostWindow
+} from './unipost'
+import { encryptPassword } from './crypto'
 
 // 알람 확인된 스케줄 ID를 저장하는 Set
 const notifiedSchedules = new Set<number>()
@@ -58,6 +66,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // UserInfo IPC handlers
   registerUserInfoHandlers()
 
+  // UniPost IPC handlers
+  registerUniPostHandlers()
+
   // Auto-updater IPC handlers
   registerAutoUpdaterHandlers(mainWindow)
 
@@ -70,6 +81,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
         notificationWindows.splice(index, 1)
       }
       win.close()
+    }
+  })
+
+  // Open external URL
+  ipcMain.on('open-external', (_event, url: string) => {
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      shell.openExternal(url)
     }
   })
 }
@@ -89,6 +107,7 @@ function registerScheduleHandlers(): void {
       category: schedule.category,
       dueDate: schedule.dueDate ? new Date(schedule.dueDate) : undefined,
       clientName: schedule.clientName,
+      requestNumber: schedule.requestNumber,
       webData: schedule.webData
     })
 
@@ -105,6 +124,9 @@ function registerScheduleHandlers(): void {
     completed?: boolean
     category?: string
     dueDate?: string | null
+    clientName?: string
+    requestNumber?: string
+    webData?: boolean
   }) => {
     const updatedSchedule = updateSchedule(id, {
       text: updates.text,
@@ -112,7 +134,10 @@ function registerScheduleHandlers(): void {
       category: updates.category,
       dueDate: updates.dueDate !== undefined
         ? updates.dueDate ? new Date(updates.dueDate) : null
-        : undefined
+        : undefined,
+      clientName: updates.clientName,
+      requestNumber: updates.requestNumber,
+      webData: updates.webData
     })
 
     // 수정된 스케줄에 대한 알람 타이머 재설정
@@ -206,10 +231,86 @@ function registerUserInfoHandlers(): void {
   })
 
   ipcMain.handle('userInfo:createOrUpdate', (_event, userInfo) => {
+    // Encrypt password if provided
+    let encryptedPw = userInfo.supportPw
+    if (userInfo.supportPw && !userInfo.supportPw.includes(':')) {
+      // Only encrypt if it's not already encrypted (encrypted format includes ':')
+      encryptedPw = encryptPassword(userInfo.supportPw)
+    }
+
     return createOrUpdateUserInfo({
       name: userInfo.name,
-      birthday: userInfo.birthday
+      birthday: userInfo.birthday,
+      supportId: userInfo.supportId,
+      supportPw: encryptedPw
     })
+  })
+}
+
+/**
+ * UniPost 관련 IPC 핸들러
+ */
+function registerUniPostHandlers(): void {
+  // Login to UniPost
+  ipcMain.handle('unipost:login', async (_event, userId, password) => {
+    try {
+      // Encrypt password before storing/using
+      const encryptedPassword = encryptPassword(password)
+      const result = await loginToUniPost(userId, encryptedPassword)
+      return result
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Login with stored credentials
+  ipcMain.handle('unipost:loginWithStored', async () => {
+    try {
+      const userInfo = getUserInfo()
+      if (!userInfo || !userInfo.supportId || !userInfo.supportPw) {
+        return { success: false, error: 'No stored credentials found' }
+      }
+
+      const result = await loginToUniPost(userInfo.supportId, userInfo.supportPw)
+      return result
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Fetch request history
+  ipcMain.handle('unipost:fetchRequests', async (_event, userName) => {
+    try {
+      const requests = await fetchRequestHistory(userName)
+      return { success: true, data: requests }
+    } catch (error: any) {
+      return { success: false, error: error.message, data: [] }
+    }
+  })
+
+  // Check login status
+  ipcMain.handle('unipost:isLoggedIn', () => {
+    return isUniPostLoggedIn()
+  })
+
+  // Logout
+  ipcMain.handle('unipost:logout', async () => {
+    try {
+      await logoutFromUniPost()
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  // Toggle window visibility (for debugging)
+  ipcMain.handle('unipost:toggleWindow', (_event, show) => {
+    try {
+      toggleUniPostWindow(show)
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   })
 }
 

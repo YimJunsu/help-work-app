@@ -4,7 +4,8 @@ import { useSchedules } from '../hooks/useSchedules'
 import { UpcomingSchedules } from '../components/dashboard'
 import { WeatherWidget } from '../components/dashboard/WeatherWidget'
 
-interface DashboardProps { onNavigate?: (page: | 'dashboard' | 'todo' | 'ScheduleCheck' | 'memo' | 'fetch' | 'userinfo') => void
+interface DashboardProps {
+  onNavigate?: (page: 'dashboard' | 'todo' | 'ScheduleCheck' | 'unisupport' | 'memo' | 'fetch' | 'userinfo' | 'minigame') => void
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {

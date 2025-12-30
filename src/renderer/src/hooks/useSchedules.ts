@@ -7,6 +7,7 @@ export interface Schedule {
   category?: string
   dueDate?: string
   clientName?: string
+  requestNumber?: string
   webData?: number | boolean
   createdAt: string
   updatedAt: string
