@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Card, CardContent, CardTitle } from '../ui/card'
+import { CardContent, CardTitle } from '../ui/card'
 import { CheckCircle2, Circle, TrendingUp } from 'lucide-react'
 import { useTodos } from '../../hooks/useTodos'
 
