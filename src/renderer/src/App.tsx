@@ -24,6 +24,8 @@ import { Dashboard } from "./pages/Dashboard"
 import Memo from "./pages/Memo"
 import { Settings } from "./pages/Settings"
 import { UniSupport } from "./pages/UniSupport"
+import { DinoGame } from "./pages/DinoGame"
+import { ExchangeRate } from "./pages/ExchangeRate"
 import { CheckSquare, FileText, List, Settings as SettingsIcon, Moon, Sun, ListTodo, Gamepad2, Mail, HelpCircle, Sheet as SheetIcon, Headset, ChevronDown, CirclePlus, CalendarDays } from "lucide-react"
 import { Badge } from "./components/ui/badge"
 import { Button } from "./components/ui/button"
@@ -37,7 +39,7 @@ function App(): React.JSX.Element {
     return localStorage.getItem('selected-theme') || 'shadcn'
   })
 
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'unisupport' | 'memo' | 'fetch' | 'userinfo' | 'minigame'>('dashboard')
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'todo' | 'ScheduleCheck' | 'unisupport' | 'memo' | 'fetch' | 'userinfo' | 'minigame' | 'dinogame' | 'exchangerate'>('dashboard')
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
   const [settingsInitialPage, setSettingsInitialPage] = useState<'userinfo' | 'fetch' | 'theme'>('userinfo')
   const [hasTodoDialog, setHasTodoDialog] = useState(false)
@@ -221,6 +223,22 @@ function App(): React.JSX.Element {
                       <SidebarMenuSub>
                         <SidebarMenuSubItem>
                           <SidebarMenuSubButton
+                            isActive={currentPage === 'dinogame'}
+                            onClick={() => setCurrentPage('dinogame')}
+                          >
+                            <span>Dino Game</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            isActive={currentPage === 'exchangerate'}
+                            onClick={() => setCurrentPage('exchangerate')}
+                          >
+                            <span>Exchange Rate</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
                             onClick={() => window.open("https://extra-yolanthe-junsu-d39ff72a.koyeb.app/", "_blank")}
                           >
                             <span>MungMung Time</span>
@@ -312,6 +330,12 @@ function App(): React.JSX.Element {
               {currentPage === 'unisupport' && (
                 <h1 className="text-lg font-semibold">UniSupport 요청 내역</h1>
               )}
+              {currentPage === 'dinogame' && (
+                <h1 className="text-lg font-semibold">Dino Game</h1>
+              )}
+              {currentPage === 'exchangerate' && (
+                <h1 className="text-lg font-semibold">Exchange Rate</h1>
+              )}
             </div>
             {currentPage === 'ScheduleCheck' && (
               <Button
@@ -358,6 +382,10 @@ function App(): React.JSX.Element {
               <UniSupport />
             ) : currentPage === 'memo' ? (
               <Memo ref={memoRef} onDialogChange={setHasTodoDialog} onCountChange={setMemoCount} />
+            ) : currentPage === 'dinogame' ? (
+              <DinoGame />
+            ) : currentPage === 'exchangerate' ? (
+              <ExchangeRate />
             ) : null}
           </main>
 

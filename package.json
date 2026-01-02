@@ -25,7 +25,6 @@
     "build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
-    "@ckeditor/ckeditor5-react": "^11.0.0",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -43,8 +42,6 @@
     "@tiptap/starter-kit": "^3.7.1",
     "better-sqlite3": "^12.4.1",
     "chart.js": "^4.5.1",
-    "ckeditor5": "^47.0.0",
-    "ckeditor5-premium-features": "^47.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

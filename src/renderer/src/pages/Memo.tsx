@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardHeader } from '../components/ui/card'
 import { FileText } from 'lucide-react'
 import { MemoAdd } from './MemoAdd'
@@ -23,33 +23,33 @@ const Memo = forwardRef<{ openAddDialog: () => void }, MemoProps>(function Memo(
   const { deletingItems, deleteWithAnimation } = useDeleteAnimation<number>()
 
   // Notify parent when dialog state changes
-  useState(() => {
+  useEffect(() => {
     onDialogChange?.(showAddDialog || showDetailDialog)
-  })
+  }, [showAddDialog, showDetailDialog, onDialogChange])
 
-  const handleAddMemo = async (memo: { content: string }) => {
+  const handleAddMemo = useCallback(async (memo: { content: string }) => {
     await addMemo(memo, editingMemo)
     setEditingMemo(null)
-  }
+  }, [addMemo, editingMemo])
 
-  const startEditMemo = (memo: Memo, e: React.MouseEvent) => {
+  const startEditMemo = useCallback((memo: Memo, e: React.MouseEvent) => {
     e.stopPropagation()
     setEditingMemo(memo)
     setShowAddDialog(true)
     setShowDetailDialog(false)
-  }
+  }, [])
 
-  const handleDeleteMemo = (id: number, e: React.MouseEvent) => {
+  const handleDeleteMemo = useCallback((id: number, e: React.MouseEvent) => {
     e.stopPropagation()
     deleteWithAnimation(id, deleteMemo)
-  }
+  }, [deleteWithAnimation, deleteMemo])
 
-  const openMemoDetail = (memo: Memo) => {
+  const openMemoDetail = useCallback((memo: Memo) => {
     setSelectedMemo(memo)
     setShowDetailDialog(true)
-  }
+  }, [])
 
-  const memoCount = memos.length
+  const memoCount = useMemo(() => memos.length, [memos])
 
   // Notify parent when count changes
   useEffect(() => {

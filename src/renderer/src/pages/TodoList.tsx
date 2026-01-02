@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle, useMemo, useCallback } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader } from '../components/ui/card'
 import { CheckCheck, List } from 'lucide-react'
@@ -23,31 +23,33 @@ export const TodoList = forwardRef<{ openAddDialog: () => void }, TodoListProps>
   const { deletingItems, deleteWithAnimation, deleteMultipleWithAnimation } = useDeleteAnimation<string>()
 
   // Notify parent when dialog state changes
-  useState(() => {
+  useEffect(() => {
     onDialogChange?.(showAddDialog)
-  })
+  }, [showAddDialog, onDialogChange])
 
-  const handleAddTodo = (todo: { text: string; category?: string }) => {
+  const handleAddTodo = useCallback((todo: { text: string; category?: string }) => {
     addTodo(todo, editingTodo)
     setEditingTodo(null)
-  }
+  }, [addTodo, editingTodo])
 
-  const startEditTodo = (todo: Todo) => {
+  const startEditTodo = useCallback((todo: Todo) => {
     setEditingTodo(todo)
     setShowAddDialog(true)
-  }
+  }, [])
 
-  const handleDeleteTodo = (id: string) => {
+  const handleDeleteTodo = useCallback((id: string) => {
     deleteWithAnimation(id, deleteTodo)
-  }
+  }, [deleteWithAnimation, deleteTodo])
 
-  const handleClearCompleted = () => {
+  const handleClearCompleted = useCallback(() => {
     const completedIds = todos.filter(todo => todo.completed).map(todo => todo.id)
     deleteMultipleWithAnimation(completedIds, clearCompletedTodos)
-  }
+  }, [todos, deleteMultipleWithAnimation, clearCompletedTodos])
 
-  const completedCount = todos.filter(todo => todo.completed).length
-  const totalCount = todos.length
+  const { completedCount, totalCount } = useMemo(() => ({
+    completedCount: todos.filter(todo => todo.completed).length,
+    totalCount: todos.length
+  }), [todos])
 
   // Notify parent when stats change
   useEffect(() => {

@@ -13,6 +13,7 @@ interface WeatherData {
   humidity: number
   windSpeed: number
   icon: string
+  locationSource: 'gps' | 'ip' | 'default'
 }
 
 interface WeeklyWeather {
@@ -41,18 +42,69 @@ export function WeatherWidget() {
 
       let latitude: number
       let longitude: number
+      let locationSource: 'gps' | 'ip' | 'default' = 'default'
 
-      // IP 기반으로 위치 가져오기
+      // 1순위: Browser Geolocation API (가장 정확)
       try {
-        const ipResponse = await fetch('https://ipapi.co/json/')
-        if (!ipResponse.ok) throw new Error('IP location failed')
-        const ipData = await ipResponse.json()
-        latitude = ipData.latitude
-        longitude = ipData.longitude
-      } catch {
-        // IP 기반 위치 가져오기 실패 시 서울을 기본값으로 사용
-        latitude = 37.5665
-        longitude = 126.9780
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error('Geolocation not supported'))
+            return
+          }
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 5000,
+            maximumAge: 300000, // 5분간 캐시
+            enableHighAccuracy: false
+          })
+        })
+        latitude = position.coords.latitude
+        longitude = position.coords.longitude
+        locationSource = 'gps'
+        console.log('✅ Using Browser Geolocation API:', { latitude, longitude })
+      } catch (geoError) {
+        console.log('⚠️ Browser Geolocation failed, trying IP-based location...')
+
+        // 2순위: IP 기반 위치 (ipapi.co -> ip-api.com -> 기본값)
+        try {
+          // ipapi.co 시도
+          const ipResponse = await fetch('https://ipapi.co/json/')
+          if (!ipResponse.ok) throw new Error('ipapi.co failed')
+          const ipData = await ipResponse.json()
+
+          // 에러 응답 체크
+          if (ipData.error) {
+            throw new Error(ipData.reason || 'ipapi.co error')
+          }
+
+          latitude = ipData.latitude
+          longitude = ipData.longitude
+          locationSource = 'ip'
+          console.log('✅ Using ipapi.co:', { latitude, longitude })
+        } catch (ipError1) {
+          console.log('⚠️ ipapi.co failed, trying ip-api.com...')
+
+          try {
+            // ip-api.com 시도 (무료, 제한 있음)
+            const ipResponse2 = await fetch('http://ip-api.com/json/')
+            if (!ipResponse2.ok) throw new Error('ip-api.com failed')
+            const ipData2 = await ipResponse2.json()
+
+            if (ipData2.status === 'fail') {
+              throw new Error(ipData2.message || 'ip-api.com error')
+            }
+
+            latitude = ipData2.lat
+            longitude = ipData2.lon
+            locationSource = 'ip'
+            console.log('✅ Using ip-api.com:', { latitude, longitude })
+          } catch (ipError2) {
+            // 모든 방법 실패 시 서울을 기본값으로 사용
+            console.log('⚠️ All location methods failed, using default (Seoul)')
+            latitude = 37.5665
+            longitude = 126.9780
+            locationSource = 'default'
+          }
+        }
       }
 
       /** ---- 현재 날씨 ---- */
@@ -128,7 +180,8 @@ export function WeatherWidget() {
         description,
         humidity: weatherData.current.relative_humidity_2m,
         windSpeed: weatherData.current.wind_speed_10m,
-        icon: getWeatherIcon(code)
+        icon: getWeatherIcon(code),
+        locationSource
       })
 
       setWeekly(weeklyList)
@@ -178,6 +231,19 @@ export function WeatherWidget() {
 
   if (!weather) return null
 
+  const getLocationSourceLabel = () => {
+    switch (weather.locationSource) {
+      case 'gps':
+        return { text: 'GPS 위치', emoji: '📍', accurate: true }
+      case 'ip':
+        return { text: 'IP 기반 위치', emoji: '🌐', accurate: false }
+      case 'default':
+        return { text: '기본 위치 (서울)', emoji: '📌', accurate: false }
+    }
+  }
+
+  const locationInfo = getLocationSourceLabel()
+
   return (
     <>
       {/* ---- Weather Widget (Click → Open Dialog) ---- */}
@@ -191,10 +257,18 @@ export function WeatherWidget() {
           active:scale-[0.98] transition
         "
       >
-        <div className="flex justify-end mb-1">
-          <p className="text-[10px] opacity-70">
-            위치정보는 정확하지 않을 수 있습니다
-          </p>
+        <div className="flex justify-between items-center mb-1">
+          <div className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20">
+            <p className="text-[10px] font-medium flex items-center gap-1">
+              <span>{locationInfo.emoji}</span>
+              <span>{locationInfo.text}</span>
+            </p>
+          </div>
+          {!locationInfo.accurate && (
+            <p className="text-[9px] opacity-70">
+              정확하지 않을 수 있음
+            </p>
+          )}
         </div>
 
         <div className="mb-3">
@@ -238,9 +312,17 @@ export function WeatherWidget() {
         <DialogContent className="max-w-md rounded-[28px] p-0 bg-gradient-to-b from-blue-400/95 to-blue-500/95 dark:from-blue-900/95 dark:to-blue-950/95 backdrop-blur-3xl border-0 shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="px-6 pt-6 pb-4">
-            <div className="flex items-center gap-2 text-white/90 mb-1">
-              <MapPin className="w-4 h-4" />
-              <p className="text-sm font-medium">{weather.location}</p>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2 text-white/90">
+                <MapPin className="w-4 h-4" />
+                <p className="text-sm font-medium">{weather.location}</p>
+              </div>
+              <div className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20">
+                <p className="text-[10px] font-medium text-white flex items-center gap-1">
+                  <span>{locationInfo.emoji}</span>
+                  <span>{locationInfo.text}</span>
+                </p>
+              </div>
             </div>
             <h2 className="text-2xl font-semibold text-white">7일간의 일기예보</h2>
           </div>
@@ -316,6 +398,11 @@ export function WeatherWidget() {
             <p className="text-white/50 text-xs text-center">
               Open-Meteo 제공 • 마지막 업데이트: {new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
             </p>
+            {!locationInfo.accurate && (
+              <p className="text-white/40 text-[10px] text-center mt-1">
+                💡 더 정확한 위치를 위해 브라우저에서 위치 권한을 허용해주세요
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>

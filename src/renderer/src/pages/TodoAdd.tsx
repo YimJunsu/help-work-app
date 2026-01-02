@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '../components/ui/button'
 import { Dialog, DialogContent } from '../components/ui/dialog'
-import { X } from 'lucide-react'
 import type { TodoPriority } from '../hooks/useTodos'
 
 interface TodoAddProps {
@@ -67,10 +66,9 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
             onClick={handleCancel}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-accent/50 transition-colors"
           >
-            <X className="w-5 h-5 text-muted-foreground" />
           </button>
           <h2 className="text-2xl font-bold text-foreground">
-            {editingTodo ? '할 일 수정하기' : '할 일 추가하기'}
+            {editingTodo ? '할 일 수정' : '할 일 추가'}
           </h2>
         </div>
 
@@ -79,7 +77,7 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
           {/* Todo Input */}
           <div className="space-y-3">
             <label className="block text-base font-semibold text-foreground">
-              무엇을 하시겠어요?
+              새로운 할 일을 추가해주세요.
             </label>
             <input
               type="text"
@@ -118,7 +116,7 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
           {/* Priority Selection */}
           <div className="space-y-3">
             <label className="block text-base font-semibold text-foreground">
-              우선순위
+              중요도
             </label>
             <div className="grid grid-cols-3 gap-3">
               <button
@@ -175,7 +173,7 @@ export function TodoAdd({ open, onOpenChange, onAddTodo, editingTodo }: TodoAddP
             onClick={handleAdd}
             className="w-full h-14 text-base font-bold rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
           >
-            {editingTodo ? '수정 완료' : '추가하기'}
+            {editingTodo ? '수정' : '추가'}
           </Button>
         </div>
       </DialogContent>

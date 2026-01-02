@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { CheckCircle2 } from 'lucide-react'
 import {
@@ -26,7 +27,7 @@ interface TodoStatsChartProps {
 }
 
 export function TodoStatsChart({ todoStats }: TodoStatsChartProps) {
-  const chartData = {
+  const chartData = useMemo(() => ({
     labels: todoStats.map(stat => stat.date),
     datasets: [
       {
@@ -37,9 +38,9 @@ export function TodoStatsChart({ todoStats }: TodoStatsChartProps) {
         borderWidth: 1,
       },
     ],
-  }
+  }), [todoStats])
 
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -52,7 +53,7 @@ export function TodoStatsChart({ todoStats }: TodoStatsChartProps) {
         ticks: { stepSize: 1 },
       },
     },
-  }
+  }), [])
 
   return (
     <Card className="lg:col-span-2 border border-border/50 bg-gradient-to-br from-card to-card/50 shadow-sm hover:shadow-md transition-shadow">

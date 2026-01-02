@@ -37,12 +37,13 @@ export function UserInfo() {
   }, [])
 
   useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => {
-        setToast(null)
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
+    if (!toast) return
+
+    const timer = setTimeout(() => {
+      setToast(null)
+    }, 3000)
+
+    return () => clearTimeout(timer)
   }, [toast])
 
   const showToast = (type: 'success' | 'error', message: string) => {

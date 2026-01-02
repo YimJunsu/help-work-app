@@ -1,3 +1,6 @@
 export { WelcomeHeader } from './WelcomeHeader'
 export { UpcomingSchedules } from './UpcomingSchedules'
 export { WeatherWidget } from './WeatherWidget'
+export { TodaySummary } from './TodaySummary'
+export { RecentMemos } from './RecentMemos'
+export { TodoStatsChart } from './TodoStatsChart'

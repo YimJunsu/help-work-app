@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Badge } from '../ui/badge'
 import { List as ListIcon, CodeXml, Send, BadgeCheck, MoreHorizontal } from 'lucide-react'
 import { getCategoryBadgeColor } from '../../utils/scheduleUtils'
@@ -11,13 +12,23 @@ interface CategoryBadgesProps {
 }
 
 export function CategoryBadges({ schedules, selectedCategory, onSelectCategory, viewMode = 'list' }: CategoryBadgesProps) {
-  const categories = [
-    { id: null, name: '전체', icon: ListIcon, count: schedules.length },
-    { id: 'develop', name: '개발/수정', icon: CodeXml, count: schedules.filter(s => s.category === 'develop').length },
-    { id: 'reflect', name: '운영 반영', icon: Send, count: schedules.filter(s => s.category === 'reflect').length },
-    { id: 'inspection', name: '서비스 점검', icon: BadgeCheck, count: schedules.filter(s => s.category === 'inspection').length },
-    { id: 'ex', name: '기타', icon: MoreHorizontal, count: schedules.filter(s => s.category?.startsWith('기타-')).length }
-  ]
+  const categories = useMemo(() => {
+    const counts = schedules.reduce((acc, schedule) => {
+      if (schedule.category === 'develop') acc.develop++
+      else if (schedule.category === 'reflect') acc.reflect++
+      else if (schedule.category === 'inspection') acc.inspection++
+      else if (schedule.category?.startsWith('기타-')) acc.ex++
+      return acc
+    }, { develop: 0, reflect: 0, inspection: 0, ex: 0 })
+
+    return [
+      { id: null, name: '전체', icon: ListIcon, count: schedules.length },
+      { id: 'develop', name: '개발/수정', icon: CodeXml, count: counts.develop },
+      { id: 'reflect', name: '운영 반영', icon: Send, count: counts.reflect },
+      { id: 'inspection', name: '서비스 점검', icon: BadgeCheck, count: counts.inspection },
+      { id: 'ex', name: '기타', icon: MoreHorizontal, count: counts.ex }
+    ]
+  }, [schedules])
 
   const isCalendar = viewMode === 'calendar'
 

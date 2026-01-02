@@ -438,10 +438,12 @@ export async function fetchRequestHistory(userName: string): Promise<UniPostRequ
     const searchResult = await unipostWindow.webContents.executeJavaScript(`
       (function() {
         try {
-          // Get current date for END_DATE
+          // Get current date for END_DATE and 1 year ago for START_DATE
           const today = new Date();
           const endDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
-          const startDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0]; // Jan 1 of current year
+          const oneYearAgo = new Date(today);
+          oneYearAgo.setFullYear(today.getFullYear() - 1);
+          const startDate = oneYearAgo.toISOString().split('T')[0]; // 1 year ago
 
           console.log('Search dates:', startDate, 'to', endDate);
 

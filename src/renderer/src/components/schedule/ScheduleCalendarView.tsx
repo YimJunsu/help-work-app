@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Button } from '../ui/button'
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { format, isSameMonth, isSameDay, getDay, addMonths, subMonths } from 'date-fns'
@@ -25,7 +26,7 @@ export function ScheduleCalendarView({
   onDateClick,
   onEmptyDateClick
 }: ScheduleCalendarViewProps) {
-  const calendarDays = generateCalendarDays(currentMonth)
+  const calendarDays = useMemo(() => generateCalendarDays(currentMonth), [currentMonth])
 
   return (
     <div className="space-y-3">

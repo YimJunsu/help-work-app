@@ -15,16 +15,21 @@ interface UniPostRequest {
   detailUrl?: string
 }
 
+// Module-level cache for requests data
+let cachedRequests: UniPostRequest[] = []
+let cachedError: string | null = null
+let isCacheInitialized = false
+
 export function UniSupport() {
-  const [requests, setRequests] = useState<UniPostRequest[]>([])
+  const [requests, setRequests] = useState<UniPostRequest[]>(cachedRequests)
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [userName, setUserName] = useState<string>('')
+  const [error, setError] = useState<string | null>(cachedError)
 
   useEffect(() => {
-    // Auto-login and fetch data on component mount
-    initializeData()
+    // Only initialize data if cache is not initialized
+    if (!isCacheInitialized) {
+      initializeData()
+    }
   }, [])
 
   const initializeData = async () => {
@@ -44,15 +49,13 @@ export function UniSupport() {
         return
       }
 
-      setUserName(userInfo.name)
-
       // Auto-login with stored credentials
       const loginResult = await window.electron.ipcRenderer.invoke('unipost:loginWithStored')
 
       if (loginResult.success) {
-        setIsLoggedIn(true)
         // Auto-fetch requests after successful login
         await fetchRequestsInternal(userInfo.name)
+        isCacheInitialized = true
       } else {
         let errorMessage = loginResult.error || '로그인에 실패했습니다.'
 
@@ -67,10 +70,13 @@ export function UniSupport() {
         }
 
         setError(errorMessage)
+        cachedError = errorMessage
       }
     } catch (error: any) {
       console.error('Initialize error:', error)
-      setError(error.message || '초기화 중 오류가 발생했습니다.')
+      const errorMessage = error.message || '초기화 중 오류가 발생했습니다.'
+      setError(errorMessage)
+      cachedError = errorMessage
     } finally {
       setIsLoading(false)
     }
@@ -81,38 +87,84 @@ export function UniSupport() {
       const result = await window.electron.ipcRenderer.invoke('unipost:fetchRequests', name)
 
       if (result.success) {
-        setRequests(result.data || [])
-        if (!result.data || result.data.length === 0) {
-          setError('진행 중인 요청이 없습니다.')
+        const data = result.data || []
+        setRequests(data)
+        cachedRequests = data // Update cache
+        if (data.length === 0) {
+          const errorMsg = '진행 중인 요청이 없습니다.'
+          setError(errorMsg)
+          cachedError = errorMsg
+        } else {
+          cachedError = null
         }
       } else {
-        setError(result.error || '요청 내역을 가져오는데 실패했습니다.')
+        const errorMsg = result.error || '요청 내역을 가져오는데 실패했습니다.'
+        setError(errorMsg)
+        cachedError = errorMsg
       }
     } catch (error: any) {
       console.error('Fetch requests error:', error)
-      setError(error.message || '요청 내역을 가져오는 중 오류가 발생했습니다.')
+      const errorMsg = error.message || '요청 내역을 가져오는 중 오류가 발생했습니다.'
+      setError(errorMsg)
+      cachedError = errorMsg
     }
   }
 
   const handleRefresh = async () => {
     setIsLoading(true)
     setError(null)
-    setRequests([]) // Clear old data
+    cachedError = null
 
     try {
       if (!window.electron) {
         throw new Error('Electron API not available')
       }
 
-      // Force logout and re-login to get fresh data
-      await window.electron.ipcRenderer.invoke('unipost:logout')
-      setIsLoggedIn(false)
+      // Get user name
+      const userInfo = await window.electron.ipcRenderer.invoke('userInfo:get')
+      if (!userInfo?.name) {
+        const errorMsg = '⚠️ 사용자 정보가 없습니다.\n\n설정 → 사용자 정보에서 이름과 UniPost 계정 정보를 입력해주세요.'
+        setError(errorMsg)
+        cachedError = errorMsg
+        setIsLoading(false)
+        return
+      }
 
-      // Re-initialize
-      await initializeData()
+      // Check if already logged in
+      const isLoggedIn = await window.electron.ipcRenderer.invoke('unipost:isLoggedIn')
+
+      if (!isLoggedIn) {
+        // Need to login first
+        const loginResult = await window.electron.ipcRenderer.invoke('unipost:loginWithStored')
+
+        if (!loginResult.success) {
+          let errorMessage = loginResult.error || '로그인에 실패했습니다.'
+
+          if (loginResult.error?.includes('No stored credentials')) {
+            errorMessage = '⚠️ 저장된 UniPost 계정 정보가 없습니다.\n\n설정 → 사용자 정보에서 UniPost 지원 ID와 비밀번호를 입력해주세요.'
+          } else if (loginResult.error?.includes('Failed to decrypt')) {
+            errorMessage = '⚠️ 비밀번호 복호화에 실패했습니다.\n\n설정에서 비밀번호를 다시 저장해주세요.'
+          } else if (loginResult.error?.includes('Missing credentials')) {
+            errorMessage = '⚠️ 계정 정보가 완전하지 않습니다.\n\n설정 → 사용자 정보에서 UniPost 지원 ID와 비밀번호를 모두 입력해주세요.'
+          } else if (loginResult.error?.includes('Login failed')) {
+            errorMessage = '⚠️ 로그인에 실패했습니다.\n\n계정 정보를 확인하거나, UniPost 사이트에서 직접 로그인이 가능한지 확인해주세요.'
+          }
+
+          setError(errorMessage)
+          cachedError = errorMessage
+          setIsLoading(false)
+          return
+        }
+      }
+
+      // Fetch fresh data (no logout needed - reuse existing session)
+      await fetchRequestsInternal(userInfo.name)
     } catch (error: any) {
       console.error('Refresh error:', error)
-      setError(error.message || '새로고침 중 오류가 발생했습니다.')
+      const errorMsg = error.message || '새로고침 중 오류가 발생했습니다.'
+      setError(errorMsg)
+      cachedError = errorMsg
+    } finally {
       setIsLoading(false)
     }
   }

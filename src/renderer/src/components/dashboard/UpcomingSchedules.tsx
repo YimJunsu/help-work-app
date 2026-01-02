@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { CardContent, CardTitle } from '../ui/card'
 import { Calendar as CalendarIcon, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
@@ -11,17 +12,12 @@ interface UpcomingSchedulesProps {
 }
 
 export function UpcomingSchedules({ schedules, onNavigate }: UpcomingSchedulesProps) {
-  const getUpcomingSchedules = () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
+  const upcomingSchedules = useMemo(() => {
     return schedules
       .filter(schedule => schedule.dueDate && !schedule.completed)
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
       .slice(0, 2)
-  }
-
-  const upcomingSchedules = getUpcomingSchedules()
+  }, [schedules])
 
   return (
     <div

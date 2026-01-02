@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle, useMemo, useCallback } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
@@ -53,41 +53,43 @@ export const ScheduleCheck = forwardRef<{ openAddDialog: () => void; toggleViewM
     onDialogChange?.(showAddDialog)
   }, [showAddDialog, onDialogChange])
 
-  const handleAddOrUpdateSchedule = async (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; requestNumber?: string; webData?: boolean }) => {
+  const handleAddOrUpdateSchedule = useCallback(async (schedule: { text: string; category?: string; dueDate?: Date; clientName?: string; requestNumber?: string; webData?: boolean }) => {
     await addOrUpdateSchedule(schedule, editingSchedule)
     setEditingSchedule(null)
-  }
+  }, [addOrUpdateSchedule, editingSchedule])
 
-  const startEditSchedule = (schedule: Schedule) => {
+  const startEditSchedule = useCallback((schedule: Schedule) => {
     setEditingSchedule(schedule)
     setShowAddDialog(true)
-  }
+  }, [])
 
-  const handleDeleteSchedule = (id: number) => {
+  const handleDeleteSchedule = useCallback((id: number) => {
     deleteWithAnimation(id, deleteSchedule)
-  }
+  }, [deleteWithAnimation, deleteSchedule])
 
-  const handleClearCompleted = () => {
+  const handleClearCompleted = useCallback(() => {
     const completedIds = schedules.filter(schedule => schedule.completed).map(schedule => schedule.id)
     deleteMultipleWithAnimation(completedIds, clearCompletedSchedules)
-  }
+  }, [schedules, deleteMultipleWithAnimation, clearCompletedSchedules])
 
-  let filteredSchedules = selectedCategory
-    ? selectedCategory === 'ex'
-      ? schedules.filter(schedule => schedule.category?.startsWith('기타-'))
-      : schedules.filter(schedule => schedule.category === selectedCategory)
-    : schedules
+  const filteredSchedules = useMemo(() => {
+    let filtered = selectedCategory
+      ? selectedCategory === 'ex'
+        ? schedules.filter(schedule => schedule.category?.startsWith('기타-'))
+        : schedules.filter(schedule => schedule.category === selectedCategory)
+      : schedules
 
-  // 기본적으로 날짜 순으로 정렬
-  filteredSchedules = [...filteredSchedules].sort((a, b) => {
-    if (!a.dueDate && !b.dueDate) return 0
-    if (!a.dueDate) return 1
-    if (!b.dueDate) return -1
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-  })
+    // 기본적으로 날짜 순으로 정렬
+    return [...filtered].sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0
+      if (!a.dueDate) return 1
+      if (!b.dueDate) return -1
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+    })
+  }, [schedules, selectedCategory])
 
-  const completedCount = filteredSchedules.filter(schedule => schedule.completed).length
-  const totalCount = filteredSchedules.length
+  const completedCount = useMemo(() => filteredSchedules.filter(schedule => schedule.completed).length, [filteredSchedules])
+  const totalCount = useMemo(() => filteredSchedules.length, [filteredSchedules])
 
   // Notify parent when stats change
   useEffect(() => {
