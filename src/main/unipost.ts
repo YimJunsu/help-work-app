@@ -390,7 +390,7 @@ export async function loginToUniPost(
 /**
  * Fetch request history from UniPost
  */
-export async function fetchRequestHistory(userName: string): Promise<UniPostRequest[]> {
+export async function fetchRequestHistory(userName: string, supportPartType?: string): Promise<UniPostRequest[]> {
   if (!isLoggedIn || !unipostWindow || unipostWindow.isDestroyed()) {
     throw new Error('Not logged in to UniPost')
   }
@@ -426,13 +426,13 @@ export async function fetchRequestHistory(userName: string): Promise<UniPostRequ
     `)
 
     if (!clickResult.success) {
-      throw new Error('Failed to find request history menu')
+      throw new Error("Failed to find request history menu");
     }
 
-    console.log('Clicked request history menu')
+    console.log("Clicked request history menu");
 
     // Wait for iframe to load
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Set search conditions and trigger search
     const searchResult = await unipostWindow.webContents.executeJavaScript(`
@@ -441,9 +441,10 @@ export async function fetchRequestHistory(userName: string): Promise<UniPostRequ
           // Get current date for END_DATE and 1 year ago for START_DATE
           const today = new Date();
           const endDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
-          const oneYearAgo = new Date(today);
-          oneYearAgo.setFullYear(today.getFullYear() - 1);
-          const startDate = oneYearAgo.toISOString().split('T')[0]; // 1 year ago
+
+          const sixMonthsAgo = new Date(today);
+          sixMonthsAgo.setMonth(today.getMonth() - 6); // 🔹 6개월 전
+          const startDate = sixMonthsAgo.toISOString().split('T')[0];
 
           console.log('Search dates:', startDate, 'to', endDate);
 
@@ -474,8 +475,9 @@ export async function fetchRequestHistory(userName: string): Promise<UniPostRequ
           win.UNIUX.SVC('PROGRESSION_TYPE', 'R,E,O,A,C,N,M');
           win.UNIUX.SVC('START_DATE', startDate);
           win.UNIUX.SVC('END_DATE', endDate);
-          win.UNIUX.SVC('RECEIPT_INFO_SEARCH_TYPE', 'P'); // 처리일
+          win.UNIUX.SVC('RECEIPT_INFO_SEARCH_TYPE', 'P'); // 처리자
           win.UNIUX.SVC('RECEIPT_INFO_TEXT', '${userName.replace(/'/g, "\\'")}');
+          win.UNIUX.SVC('UNIDOCU_PART_TYPE', '${(supportPartType || "").replace(/[^0-9N]/g, "")}');
 
           console.log('Search conditions set');
 
@@ -585,7 +587,7 @@ export async function fetchRequestHistory(userName: string): Promise<UniPostRequ
           return { success: false, error: error.message, stack: error.stack };
         }
       })();
-    `)
+    `);
 
     console.log('Search result:', searchResult)
 

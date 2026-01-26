@@ -1,7 +1,7 @@
 {
   "name": "help-work-app",
   "version": "2.0.3",
-  "description": "Work Management Helper Application",
+  "description": "당신의 Helper",
   "main": "./out/main/index.js",
   "author": "YimJunsu",
   "homepage": "https://github.com/YimJunsu/help-work-app",
@@ -81,6 +81,7 @@
     "sharp-cli": "^5.2.0",
     "tailwindcss": "^3.4.18",
     "typescript": "^5.9.2",
-    "vite": "^7.1.6"
+    "vite": "^7.1.6",
+    "vite-plugin-compression": "^0.5.1"
   }
 }

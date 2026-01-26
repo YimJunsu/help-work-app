@@ -41,6 +41,7 @@ export interface UserInfo {
   birthday: string // YYYY-MM-DD format
   supportId?: string // UniPost support account ID
   supportPw?: string // UniPost support account password (encrypted)
+  supportPartType?: string // UniPost team type (1팀, 2팀, 3팀, 4팀)
   createdAt: string
   updatedAt: string
 }
@@ -189,6 +190,7 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
         birthday TEXT NOT NULL,
         supportId TEXT,
         supportPw TEXT,
+        supportPartType TEXT,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )
@@ -199,8 +201,8 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
       if (userInfo.length > 0) {
         console.log(`Migrating ${userInfo.length} user info records...`)
         const insertStmt = newUserInfoDb.prepare(`
-          INSERT INTO user_info (id, name, birthday, supportId, supportPw, createdAt, updatedAt)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO user_info (id, name, birthday, supportId, supportPw, supportPartType, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `)
 
         for (const info of userInfo as any[]) {
@@ -210,6 +212,7 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
             info.birthday,
             info.supportId || null,
             info.supportPw || null,
+            info.supportPartType || null,
             info.createdAt,
             info.updatedAt
           )
@@ -327,6 +330,7 @@ export function initDatabase(): Database.Database {
       birthday TEXT NOT NULL,
       supportId TEXT,
       supportPw TEXT,
+      supportPartType TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )
@@ -342,6 +346,13 @@ export function initDatabase(): Database.Database {
   // Add supportPw column if it doesn't exist (for existing databases)
   try {
     userInfoDb.exec(`ALTER TABLE user_info ADD COLUMN supportPw TEXT`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  // Add supportPartType column if it doesn't exist (for existing databases)
+  try {
+    userInfoDb.exec(`ALTER TABLE user_info ADD COLUMN supportPartType TEXT`)
   } catch (error) {
     // Column already exists, ignore error
   }
@@ -622,6 +633,7 @@ export function createOrUpdateUserInfo(userInfo: {
   birthday: string;
   supportId?: string;
   supportPw?: string;
+  supportPartType?: string;
 }): UserInfo {
   if (!userInfoDb) throw new Error('User info database not initialized')
 
@@ -642,6 +654,10 @@ export function createOrUpdateUserInfo(userInfo: {
       fields.push('supportPw = ?')
       values.push(userInfo.supportPw || null)
     }
+    if (userInfo.supportPartType !== undefined) {
+      fields.push('supportPartType = ?')
+      values.push(userInfo.supportPartType || null)
+    }
 
     values.push(existing.id)
 
@@ -654,14 +670,15 @@ export function createOrUpdateUserInfo(userInfo: {
   } else {
     // Create new user info
     const stmt = userInfoDb.prepare(`
-      INSERT INTO user_info (name, birthday, supportId, supportPw, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO user_info (name, birthday, supportId, supportPw, supportPartType, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
     stmt.run(
       userInfo.name,
       userInfo.birthday,
       userInfo.supportId || null,
       userInfo.supportPw || null,
+      userInfo.supportPartType || null,
       now,
       now
     )

@@ -52,17 +52,21 @@ export function WeatherWidget() {
             return
           }
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 5000,
-            maximumAge: 300000, // 5분간 캐시
-            enableHighAccuracy: false
+            timeout: 10000,          // 10초로 증가 (정확도를 위해)
+            maximumAge: 0,           // 캐시 사용 안함 (항상 최신 위치)
+            enableHighAccuracy: true // 고정밀도 모드 활성화
           })
         })
         latitude = position.coords.latitude
         longitude = position.coords.longitude
         locationSource = 'gps'
-        console.log('✅ Using Browser Geolocation API:', { latitude, longitude })
+        console.log('✅ Using Browser Geolocation API (High Accuracy):', {
+          latitude,
+          longitude,
+          accuracy: position.coords.accuracy
+        })
       } catch (geoError) {
-        console.log('⚠️ Browser Geolocation failed, trying IP-based location...')
+        console.log('⚠️ Browser Geolocation failed, trying IP-based location...', geoError)
 
         // 2순위: IP 기반 위치 (ipapi.co -> ip-api.com -> 기본값)
         try {
@@ -207,8 +211,8 @@ export function WeatherWidget() {
   /* 로딩 */
   if (loading) {
     return (
-      <div className="w-full rounded-3xl p-6 bg-gradient-to-b from-blue-500/60 to-sky-500/50 backdrop-blur-xl border border-white/20 shadow-lg flex justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-white" />
+      <div className="w-full rounded-3xl p-6 bg-gradient-to-b from-slate-100/80 to-slate-200/70 dark:from-slate-800/70 dark:to-slate-900/60 backdrop-blur-xl border border-slate-200/40 dark:border-slate-700/30 shadow-lg flex justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-600 dark:text-slate-400" />
       </div>
     )
   }
@@ -216,12 +220,12 @@ export function WeatherWidget() {
   /* 에러 */
   if (error) {
     return (
-      <div className="w-full rounded-3xl p-6 bg-white/20 backdrop-blur-xl border border-white/30 shadow-lg text-center text-white">
-        <CloudOff className="w-6 h-6 mx-auto mb-2 opacity-80" />
-        <p className="text-sm font-medium">{error}</p>
+      <div className="w-full rounded-3xl p-6 bg-slate-100/80 dark:bg-slate-800/70 backdrop-blur-xl border border-slate-200/40 dark:border-slate-700/30 shadow-lg text-center">
+        <CloudOff className="w-6 h-6 mx-auto mb-2 opacity-60 text-slate-600 dark:text-slate-400" />
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{error}</p>
         <button
           onClick={fetchWeather}
-          className="mt-3 text-xs px-3 py-1 bg-white/20 rounded-full backdrop-blur-md border border-white/20 hover:bg-white/30 transition"
+          className="mt-3 text-xs px-3 py-1 bg-slate-200/80 dark:bg-slate-700/80 rounded-full backdrop-blur-md border border-slate-300/40 dark:border-slate-600/40 hover:bg-slate-300/80 dark:hover:bg-slate-600/80 transition text-slate-700 dark:text-slate-300"
         >
           다시 시도
         </button>
@@ -251,55 +255,55 @@ export function WeatherWidget() {
         onClick={() => setOpen(true)}
         className="
           w-full rounded-3xl p-4 cursor-pointer
-          bg-gradient-to-b from-blue-500/70 to-blue-600/70
-          dark:from-blue-800/50 dark:to-blue-900/50
-          text-white shadow-xl backdrop-blur-2xl border border-white/20
-          active:scale-[0.98] transition
+          bg-gradient-to-b from-slate-100/90 to-slate-200/80
+          dark:from-slate-800/70 dark:to-slate-900/60
+          text-slate-800 dark:text-slate-100 shadow-xl backdrop-blur-2xl border border-slate-200/40 dark:border-slate-700/30
+          hover:shadow-2xl hover:scale-[1.01] active:scale-[0.98] transition-all duration-300
         "
       >
         <div className="flex justify-between items-center mb-1">
-          <div className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20">
-            <p className="text-[10px] font-medium flex items-center gap-1">
+          <div className="px-2 py-0.5 rounded-full bg-slate-200/60 dark:bg-slate-700/60 backdrop-blur-md border border-slate-300/40 dark:border-slate-600/40">
+            <p className="text-[10px] font-medium flex items-center gap-1 text-slate-700 dark:text-slate-300">
               <span>{locationInfo.emoji}</span>
               <span>{locationInfo.text}</span>
             </p>
           </div>
           {!locationInfo.accurate && (
-            <p className="text-[9px] opacity-70">
+            <p className="text-[9px] opacity-60 text-slate-600 dark:text-slate-400">
               정확하지 않을 수 있음
             </p>
           )}
         </div>
 
         <div className="mb-3">
-          <p className="text-base font-semibold flex items-center gap-1">
-            <MapPin className="w-4 h-4 opacity-80" />
+          <p className="text-base font-semibold flex items-center gap-1 text-slate-800 dark:text-slate-100">
+            <MapPin className="w-4 h-4 opacity-70" />
             {weather.location}
           </p>
-          <p className="text-[13px] opacity-80 mt-0.5">{weather.description}</p>
+          <p className="text-[13px] opacity-70 mt-0.5 text-slate-700 dark:text-slate-300">{weather.description}</p>
         </div>
 
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-5xl font-light">{weather.temperature}°</p>
-            <p className="text-xs opacity-80 mt-1">체감 {weather.feelsLike}°</p>
+            <p className="text-5xl font-light text-slate-900 dark:text-slate-50">{weather.temperature}°</p>
+            <p className="text-xs opacity-70 mt-1 text-slate-700 dark:text-slate-300">체감 {weather.feelsLike}°</p>
           </div>
-          <div className="text-5xl">{weather.icon}</div>
+          <div className="text-5xl drop-shadow-sm">{weather.icon}</div>
         </div>
 
-        <div className="w-full h-px bg-white/20 my-3" />
+        <div className="w-full h-px bg-slate-300/30 dark:bg-slate-600/30 my-3" />
 
         <div className="flex justify-between text-sm">
           <div className="flex flex-col gap-1">
-            <span className="text-xs opacity-80">습도</span>
-            <div className="flex items-center gap-1 text-white">
+            <span className="text-xs opacity-70 text-slate-600 dark:text-slate-400">습도</span>
+            <div className="flex items-center gap-1 text-slate-800 dark:text-slate-200">
               <Droplets className="w-3 h-3" />
               {weather.humidity}%
             </div>
           </div>
           <div className="flex flex-col gap-1 text-right">
-            <span className="text-xs opacity-80">풍속</span>
-            <div className="flex items-center gap-1 justify-end">
+            <span className="text-xs opacity-70 text-slate-600 dark:text-slate-400">풍속</span>
+            <div className="flex items-center gap-1 justify-end text-slate-800 dark:text-slate-200">
               <Wind className="w-3 h-3" />
               {weather.windSpeed} km/h
             </div>
@@ -309,27 +313,27 @@ export function WeatherWidget() {
 
       {/* ---- Dialog (7일치 날씨) ---- */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md rounded-[28px] p-0 bg-gradient-to-b from-blue-400/95 to-blue-500/95 dark:from-blue-900/95 dark:to-blue-950/95 backdrop-blur-3xl border-0 shadow-2xl overflow-hidden">
+        <DialogContent className="max-w-md rounded-[28px] p-0 bg-gradient-to-b from-slate-100/98 to-slate-200/98 dark:from-slate-800/98 dark:to-slate-900/98 backdrop-blur-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="px-6 pt-6 pb-4">
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2 text-white/90">
+              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                 <MapPin className="w-4 h-4" />
                 <p className="text-sm font-medium">{weather.location}</p>
               </div>
-              <div className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/20">
-                <p className="text-[10px] font-medium text-white flex items-center gap-1">
+              <div className="px-2 py-0.5 rounded-full bg-slate-200/60 dark:bg-slate-700/60 backdrop-blur-md border border-slate-300/40 dark:border-slate-600/40">
+                <p className="text-[10px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
                   <span>{locationInfo.emoji}</span>
                   <span>{locationInfo.text}</span>
                 </p>
               </div>
             </div>
-            <h2 className="text-2xl font-semibold text-white">7일간의 일기예보</h2>
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">7일간의 일기예보</h2>
           </div>
 
           {/* Weekly List */}
           <div className="px-4 pb-4">
-            <div className="bg-white/10 backdrop-blur-xl rounded-[20px] overflow-hidden border border-white/20 shadow-inner">
+            <div className="bg-slate-50/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-[20px] overflow-hidden border border-slate-200/40 dark:border-slate-700/40 shadow-inner">
               {weekly.map((day, i) => {
                 const date = new Date(day.date)
                 const isToday = i === 0
@@ -351,17 +355,17 @@ export function WeatherWidget() {
                     key={i}
                     className={`
                       flex items-center justify-between px-4 py-3.5
-                      ${i !== weekly.length - 1 ? 'border-b border-white/10' : ''}
-                      hover:bg-white/5 transition-colors
+                      ${i !== weekly.length - 1 ? 'border-b border-slate-200/40 dark:border-slate-700/40' : ''}
+                      hover:bg-slate-100/50 dark:hover:bg-slate-700/30 transition-colors
                     `}
                   >
                     {/* Left: Day */}
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-base">
+                      <p className="text-slate-800 dark:text-slate-100 font-semibold text-base">
                         {isToday ? dayName : `${dayName}요일`}
                       </p>
                       {!isToday && (
-                        <p className="text-white/60 text-xs mt-0.5">{dateStr}</p>
+                        <p className="text-slate-600 dark:text-slate-400 text-xs mt-0.5">{dateStr}</p>
                       )}
                     </div>
 
@@ -374,16 +378,16 @@ export function WeatherWidget() {
 
                     {/* Right: Temperature */}
                     <div className="flex-1 flex items-center justify-end gap-3">
-                      <span className="text-white/60 text-base font-medium min-w-[32px] text-right">
+                      <span className="text-slate-600 dark:text-slate-400 text-base font-medium min-w-[32px] text-right">
                         {day.min}°
                       </span>
-                      <div className="w-16 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div className="w-16 h-1.5 bg-slate-300/40 dark:bg-slate-600/40 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-blue-300 to-orange-400 rounded-full transition-all"
+                          className="h-full bg-gradient-to-r from-slate-400 to-slate-600 dark:from-slate-500 dark:to-slate-700 rounded-full transition-all"
                           style={{ width: `${Math.max(barWidth, 20)}%` }}
                         />
                       </div>
-                      <span className="text-white text-base font-semibold min-w-[32px]">
+                      <span className="text-slate-800 dark:text-slate-200 text-base font-semibold min-w-[32px]">
                         {day.max}°
                       </span>
                     </div>
@@ -395,11 +399,11 @@ export function WeatherWidget() {
 
           {/* Footer Info */}
           <div className="px-6 pb-5 pt-2">
-            <p className="text-white/50 text-xs text-center">
+            <p className="text-slate-500 dark:text-slate-400 text-xs text-center">
               Open-Meteo 제공 • 마지막 업데이트: {new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
             </p>
             {!locationInfo.accurate && (
-              <p className="text-white/40 text-[10px] text-center mt-1">
+              <p className="text-slate-400 dark:text-slate-500 text-[10px] text-center mt-1">
                 💡 더 정확한 위치를 위해 브라우저에서 위치 권한을 허용해주세요
               </p>
             )}

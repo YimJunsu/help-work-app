@@ -278,7 +278,7 @@ export function UniSupport() {
                         접수일
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground uppercase tracking-tight w-28">
-                        유형
+                        고객사
                       </th>
                     </tr>
                   </thead>

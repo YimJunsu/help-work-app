@@ -13,9 +13,18 @@ interface UserInfo {
   birthday: string
   supportId?: string
   supportPw?: string
+  supportPartType?: string
   createdAt: string
   updatedAt: string
 }
+
+const PART_TYPE_OPTIONS = [
+  { value: '', label: '미지정' },
+  { value: '1팀', label: '1팀' },
+  { value: '2팀', label: '2팀' },
+  { value: '3팀', label: '3팀' },
+  { value: '4팀', label: '4팀' }
+]
 
 interface Toast {
   type: 'success' | 'error'
@@ -28,6 +37,7 @@ export function UserInfo() {
   const [birthday, setBirthday] = useState('')
   const [supportId, setSupportId] = useState('')
   const [supportPw, setSupportPw] = useState('')
+  const [supportPartType, setSupportPartType] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [toast, setToast] = useState<Toast | null>(null)
@@ -58,6 +68,7 @@ export function UserInfo() {
         setName(info.name)
         setBirthday(info.birthday)
         setSupportId(info.supportId || '')
+        setSupportPartType(info.supportPartType || '')
         // Don't display the encrypted password, just show if it's set
         setSupportPw('')
       } else {
@@ -99,6 +110,8 @@ export function UserInfo() {
         if (hasSupportPw) {
           updateData.supportPw = supportPw.trim()
         }
+        // Always save supportPartType (can be empty for "미지정")
+        updateData.supportPartType = supportPartType
 
         const savedInfo = await window.electron.ipcRenderer.invoke('userInfo:createOrUpdate', updateData)
         setUserInfo(savedInfo)
@@ -129,6 +142,7 @@ export function UserInfo() {
       setName(userInfo.name)
       setBirthday(userInfo.birthday)
       setSupportId(userInfo.supportId || '')
+      setSupportPartType(userInfo.supportPartType || '')
       setSupportPw('')
       setIsEditing(false)
     }
@@ -267,17 +281,36 @@ export function UserInfo() {
 
               {isEditing ? (
                 <>
-                  <div className="space-y-1">
-                    <Label htmlFor="supportId" className="text-sm font-medium text-muted-foreground">
-                      ID
-                    </Label>
-                    <Input
-                      id="supportId"
-                      type="text"
-                      placeholder="UniPost ID (선택)"
-                      value={supportId}
-                      onChange={(e) => setSupportId(e.target.value)}
-                    />
+                  <div className="flex gap-2">
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="supportId" className="text-sm font-medium text-muted-foreground">
+                        ID
+                      </Label>
+                      <Input
+                        id="supportId"
+                        type="text"
+                        placeholder="UniPost ID (선택)"
+                        value={supportId}
+                        onChange={(e) => setSupportId(e.target.value)}
+                      />
+                    </div>
+                    <div className="w-24 space-y-1">
+                      <Label htmlFor="supportPartType" className="text-sm font-medium text-muted-foreground">
+                        구독팀
+                      </Label>
+                      <select
+                        id="supportPartType"
+                        value={supportPartType}
+                        onChange={(e) => setSupportPartType(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        {PART_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
@@ -301,9 +334,16 @@ export function UserInfo() {
               ) : userInfo?.supportId ? (
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Shield className="w-5 h-5 text-primary" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs text-muted-foreground">UniPost ID</p>
-                    <p className="text-base font-semibold">{userInfo.supportId}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-semibold">{userInfo.supportId}</p>
+                      {userInfo.supportPartType && (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
+                          {userInfo.supportPartType}
+                        </span>
+                      )}
+                    </div>
                     {userInfo.supportPw && (
                       <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                         비밀번호 저장됨

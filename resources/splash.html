@@ -3,12 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loading...</title>
+  <title>Help Work</title>
   <style>
+    :root {
+      /* Apple Gray Scale */
+      --bg-color: #000000;
+      --card-bg: rgba(28, 28, 30, 0.6);
+      --text-main: #FFFFFF;
+      --text-sub: #86868b;
+      --accent: #FFFFFF;
+      /* Apple Easing */
+      --apple-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
     }
 
     body {
@@ -17,176 +29,144 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #1e1e2e; /* body 배경 */
+      background-color: var(--bg-color);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
       overflow: hidden;
     }
 
-    /* 스플래시 화면 전체 */
-    .splash {
-      width: 90vw;
-      max-width: 480px;
-      height: 80vh;
-      max-height: 600px;
-      border-radius: 48px; /* 모서리 둥글게 */
-      overflow: hidden;    /* 내부 요소가 튀어나오지 않게 */
-      background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-
-    .logo-container {
-      position: relative;
-      margin-bottom: 32px;
-      animation: fadeIn 0.6s ease-in-out;
-    }
-
-    .logo {
-      width: 120px;
-      height: 120px;
-      border-radius: 24px;
-      animation: logoFloat 3s ease-in-out infinite;
-      box-shadow:
-        0 20px 60px rgba(99, 102, 241, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
-    }
-
-    .title-container {
+    /* 컨테이너 */
+    .container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 48px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    /* 로고: 그림자보다는 깔끔한 형태 강조 */
+    .logo-area {
+      position: relative;
+      margin-bottom: 40px;
+      opacity: 0;
+      transform: scale(0.92);
+      animation: appleEntrance 1.2s var(--apple-ease) forwards;
+    }
+
+    .logo-img {
+      width: 92px;
+      height: 92px;
+      border-radius: 20px; /* Apple iOS Icon Radius Ratio */
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+      background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 100%);
+      padding: 2px;
+    }
+
+    /* 타이포그래피 */
+    .title-area {
+      margin-bottom: 80px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: appleEntrance 1.2s var(--apple-ease) 0.2s forwards;
     }
 
     .title {
-      font-size: 28px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.95);
-      letter-spacing: -0.5px;
-      animation: fadeIn 0.8s ease-in-out;
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
     }
 
     .subtitle {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.5);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      font-weight: 600;
-      animation: fadeIn 1s ease-in-out;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-sub);
+      letter-spacing: -0.01em;
     }
 
-    .loader-container {
-      width: 240px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
+    /* 인디케이터: 가장 애플다운 가느다란 라인 */
+    .loading-area {
+      width: 200px;
+      opacity: 0;
+      animation: fadeIn 0.8s ease 0.6s forwards;
     }
 
-    .loader {
-      width: 100%;
-      height: 3px;
-      border-radius: 8px;
-      overflow: hidden;
-      background-color: rgba(99, 102, 241, 0.15);
+    .progress-bar {
       position: relative;
+      width: 100%;
+      height: 2px; /* 매우 가늘게 */
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 1px;
+      overflow: hidden;
     }
 
-    .loader-bar {
+    .progress-fill {
+      position: absolute;
+      width: 100%;
       height: 100%;
-      width: 40%;
-      border-radius: 8px;
-      background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-      animation: loading 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+      background: var(--accent);
+      transform: translateX(-100%);
+      animation: progressAnim 3s var(--apple-ease) forwards;
     }
 
-    .loading-text {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.4);
+    .status-text {
+      margin-top: 16px;
+      font-size: 12px;
       font-weight: 500;
-      animation: blink 1.5s ease-in-out infinite;
+      color: var(--text-sub);
     }
 
+    /* 푸터 */
     .version {
       position: absolute;
-      bottom: 16px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.3);
-      font-weight: 500;
+      bottom: 40px;
+      font-size: 11px;
+      color: #424245;
+      letter-spacing: 0.05em;
     }
 
-    @keyframes loading {
-      0% {
-        transform: translateX(-100%);
-      }
-      100% {
-        transform: translateX(350%);
-      }
-    }
-
-    @keyframes logoFloat {
-      0%, 100% {
-        transform: translateY(0) scale(1);
-      }
-      50% {
-        transform: translateY(-8px) scale(1.02);
+    /* 애니메이션 정의 */
+    @keyframes appleEntrance {
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
       }
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      to { opacity: 1; }
     }
 
-    @keyframes blink {
-      0%, 100% {
-        opacity: 0.4;
-      }
-      50% {
-        opacity: 0.2;
-      }
+    @keyframes progressAnim {
+      0% { transform: translateX(-100%); }
+      20% { transform: translateX(-70%); }
+      60% { transform: translateX(-30%); }
+      100% { transform: translateX(0); }
     }
   </style>
 </head>
 <body>
-<div class="splash">
-  <div class="logo-container">
-    <img src="icon.png" alt="Work Management" class="logo">
+
+<div class="container">
+  <div class="logo-area">
+    <img src="icon.png" alt="App Icon" class="logo-img">
   </div>
 
-  <div class="title-container">
-    <div class="title">Help Work App</div>
-    <div class="subtitle">WORK HELPER</div>
+  <div class="title-area">
+    <h1 class="title">Help Work</h1>
+    <p class="subtitle">Experience Simplicity.</p>
   </div>
 
-  <div class="loader-container">
-    <div class="loader">
-      <div class="loader-bar"></div>
+  <div class="loading-area">
+    <div class="progress-bar">
+      <div class="progress-fill"></div>
     </div>
-    <div class="loading-text">Loading...</div>
+    <div class="status-text">Loading</div>
   </div>
 
-  <div class="version">v2.0.3</div>
+  <div class="version">Version 2.0.3</div>
 </div>
 
-<script>
-  // IPC를 통해 다크모드 설정 받기 (선택적)
-  if (window.electronAPI) {
-    window.electronAPI.onThemeChange((isDark) => {
-      // 로딩 화면은 항상 다크 테마를 사용
-    });
-  }
-</script>
 </body>
 </html>

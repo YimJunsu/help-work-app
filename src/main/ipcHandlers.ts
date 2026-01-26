@@ -242,7 +242,8 @@ function registerUserInfoHandlers(): void {
       name: userInfo.name,
       birthday: userInfo.birthday,
       supportId: userInfo.supportId,
-      supportPw: encryptedPw
+      supportPw: encryptedPw,
+      supportPartType: userInfo.supportPartType
     })
   })
 }
@@ -281,7 +282,15 @@ function registerUniPostHandlers(): void {
   // Fetch request history
   ipcMain.handle('unipost:fetchRequests', async (_event, userName) => {
     try {
-      const requests = await fetchRequestHistory(userName)
+      // Get supportPartType from user info
+      const userInfo = getUserInfo()
+      const supportPartType = userInfo?.supportPartType || ''
+
+      console.log('=== unipost:fetchRequests ===')
+      console.log('userInfo:', userInfo)
+      console.log('supportPartType from DB:', supportPartType)
+
+      const requests = await fetchRequestHistory(userName, supportPartType)
       return { success: true, data: requests }
     } catch (error: any) {
       return { success: false, error: error.message, data: [] }
