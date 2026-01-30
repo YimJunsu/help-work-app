@@ -1,1 +1,0 @@
-export { MemoCard } from './MemoCard'

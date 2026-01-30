@@ -22,7 +22,7 @@ let splashWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
 
-// 로딩 화면 사이즈
+// App Start 로딩 화면 사이즈
 function createSplashWindow(): void {
   splashWindow = new BrowserWindow({
     width: 800,

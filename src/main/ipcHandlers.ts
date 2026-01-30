@@ -16,6 +16,11 @@ import {
   getTodoStatByDate,
   incrementTodoStat,
   resetTodoStat,
+  getAllTodos,
+  createTodo,
+  updateTodo,
+  deleteTodo,
+  deleteCompletedTodos,
   getUserInfo,
   createOrUpdateUserInfo
 } from './database'
@@ -62,6 +67,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // TodoStats IPC handlers
   registerTodoStatsHandlers()
+
+  // Todos IPC handlers
+  registerTodosHandlers()
 
   // UserInfo IPC handlers
   registerUserInfoHandlers()
@@ -219,6 +227,35 @@ function registerTodoStatsHandlers(): void {
 
   ipcMain.handle('todoStats:reset', (_event, date) => {
     return resetTodoStat(date)
+  })
+}
+
+/**
+ * Todos 관련 IPC 핸들러
+ */
+function registerTodosHandlers(): void {
+  ipcMain.handle('todos:getAll', () => {
+    return getAllTodos()
+  })
+
+  ipcMain.handle('todos:create', (_event, todo) => {
+    return createTodo({ text: todo.text, priority: todo.priority })
+  })
+
+  ipcMain.handle('todos:update', (_event, id, updates) => {
+    return updateTodo(id, {
+      text: updates.text,
+      completed: updates.completed,
+      priority: updates.priority
+    })
+  })
+
+  ipcMain.handle('todos:delete', (_event, id) => {
+    return deleteTodo(id)
+  })
+
+  ipcMain.handle('todos:deleteCompleted', () => {
+    return deleteCompletedTodos()
   })
 }
 

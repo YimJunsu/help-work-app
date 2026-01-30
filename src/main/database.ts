@@ -7,6 +7,7 @@ import fs from 'fs'
 let schedulesDb: Database.Database | null = null
 let memosDb: Database.Database | null = null
 let todoStatsDb: Database.Database | null = null
+let todosDb: Database.Database | null = null
 let userInfoDb: Database.Database | null = null
 
 export interface Schedule {
@@ -33,6 +34,15 @@ export interface TodoStat {
   id: number
   date: string // YYYY-MM-DD format
   count: number
+}
+
+export interface Todo {
+  id: number
+  text: string
+  completed: number // SQLite INTEGER (0 = false, 1 = true)
+  priority: string // 'urgent' | 'high' | 'normal' | 'low'
+  createdAt: string
+  updatedAt: string
 }
 
 export interface UserInfo {
@@ -319,7 +329,29 @@ export function initDatabase(): Database.Database {
     )
   `)
 
-  // 4. User Info DB 초기화
+  // 4. Todos DB 초기화
+  const todosDbPath = path.join(datasPath, 'todos.db')
+  todosDb = new Database(todosDbPath)
+
+  todosDb.exec(`
+    CREATE TABLE IF NOT EXISTS todos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      text TEXT NOT NULL,
+      completed INTEGER DEFAULT 0,
+      priority TEXT DEFAULT 'normal',
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    )
+  `)
+
+  // Add priority column if it doesn't exist (for existing databases)
+  try {
+    todosDb.exec(`ALTER TABLE todos ADD COLUMN priority TEXT DEFAULT 'normal'`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  // 5. User Info DB 초기화
   const userInfoDbPath = path.join(datasPath, 'user_info.db')
   userInfoDb = new Database(userInfoDbPath)
 
@@ -382,6 +414,10 @@ export function closeDatabase() {
   if (todoStatsDb) {
     todoStatsDb.close()
     todoStatsDb = null
+  }
+  if (todosDb) {
+    todosDb.close()
+    todosDb = null
   }
   if (userInfoDb) {
     userInfoDb.close()
@@ -685,5 +721,84 @@ export function createOrUpdateUserInfo(userInfo: {
   }
 
   return getUserInfo()!
+}
+
+// Todo CRUD operations
+export function getAllTodos(): Todo[] {
+  if (!todosDb) throw new Error('Todos database not initialized')
+
+  const stmt = todosDb.prepare('SELECT * FROM todos ORDER BY createdAt DESC')
+  return stmt.all() as Todo[]
+}
+
+export function getTodoById(id: number): Todo | undefined {
+  if (!todosDb) throw new Error('Todos database not initialized')
+
+  const stmt = todosDb.prepare('SELECT * FROM todos WHERE id = ?')
+  return stmt.get(id) as Todo | undefined
+}
+
+export function createTodo(todo: { text: string; priority?: string }): Todo {
+  if (!todosDb) throw new Error('Todos database not initialized')
+
+  const now = new Date().toISOString()
+
+  const stmt = todosDb.prepare(`
+    INSERT INTO todos (text, completed, priority, createdAt, updatedAt)
+    VALUES (?, 0, ?, ?, ?)
+  `)
+
+  const result = stmt.run(todo.text, todo.priority || 'normal', now, now)
+  return getTodoById(Number(result.lastInsertRowid))!
+}
+
+export function updateTodo(id: number, updates: { text?: string; completed?: boolean; priority?: string }): Todo {
+  if (!todosDb) throw new Error('Todos database not initialized')
+
+  const now = new Date().toISOString()
+  const fields: string[] = []
+  const values: any[] = []
+
+  if (updates.text !== undefined) {
+    fields.push('text = ?')
+    values.push(updates.text)
+  }
+  if (updates.completed !== undefined) {
+    fields.push('completed = ?')
+    values.push(updates.completed ? 1 : 0)
+  }
+  if (updates.priority !== undefined) {
+    fields.push('priority = ?')
+    values.push(updates.priority)
+  }
+
+  fields.push('updatedAt = ?')
+  values.push(now)
+  values.push(id)
+
+  const stmt = todosDb.prepare(`
+    UPDATE todos
+    SET ${fields.join(', ')}
+    WHERE id = ?
+  `)
+
+  stmt.run(...values)
+  return getTodoById(id)!
+}
+
+export function deleteTodo(id: number): boolean {
+  if (!todosDb) throw new Error('Todos database not initialized')
+
+  const stmt = todosDb.prepare('DELETE FROM todos WHERE id = ?')
+  const result = stmt.run(id)
+  return result.changes > 0
+}
+
+export function deleteCompletedTodos(): number {
+  if (!todosDb) throw new Error('Todos database not initialized')
+
+  const stmt = todosDb.prepare('DELETE FROM todos WHERE completed = 1')
+  const result = stmt.run()
+  return result.changes
 }
 

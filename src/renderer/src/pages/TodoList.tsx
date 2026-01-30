@@ -1,306 +1,424 @@
-/**
- * TodoList Component
- *
- * 일일 할일 관리 페이지
- * - 할일 추가/수정/삭제
- * - 완료 상태 토글
- * - 드래그 앤 드롭으로 순서 변경
- * - 완료된 항목 일괄 삭제
- *
- * Features:
- * - iOS 스타일 인터랙션
- * - 부드러운 애니메이션 (삭제, 드래그)
- * - Empty State 디자인
- * - 필터링 (전체/진행중/완료)
- */
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Plus,
+  Trash2,
+  Circle,
+  CheckCircle2,
+  ListFilter,
+  Loader2,
+  Pencil,
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { cn } from "../lib/utils";
 
-import { useState, useEffect, forwardRef, useImperativeHandle, useMemo, useCallback } from 'react'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader } from '../components/ui/card'
-import { CheckCheck, List, ListTodo, CheckCircle2, Circle } from 'lucide-react'
-import { TodoAdd } from './TodoAdd'
-import { TodoItem } from '../components/todo'
-import { useTodos } from '../hooks/useTodos'
-import { useDragAndDrop } from '../hooks/useDragAndDrop'
-import { useDeleteAnimation } from '../hooks/useDeleteAnimation'
-import type { Todo } from '../hooks/useTodos'
-
-interface TodoListProps {
-  onDialogChange?: (isOpen: boolean) => void
-  onStatsChange?: (stats: { completed: number; total: number }) => void
+interface Todo {
+  id: number;
+  text: string;
+  completed: number;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-/**
- * 필터 타입 정의
- */
-type FilterType = 'all' | 'active' | 'completed'
+type Filter = "all" | "active" | "completed";
+type Priority = "urgent" | "high" | "normal" | "low";
 
-export const TodoList = forwardRef<{ openAddDialog: () => void }, TodoListProps>(function TodoList({ onDialogChange, onStatsChange }, ref) {
-  /* ============================================
-     State Management
-     ============================================ */
+const PRIORITIES: {
+  value: Priority;
+  label: string;
+  color: string;
+  bg: string;
+}[] = [
+  { value: "urgent", label: "긴급", color: "text-red-500", bg: "bg-red-500" },
+  {
+    value: "high",
+    label: "높음",
+    color: "text-amber-500",
+    bg: "bg-amber-500",
+  },
+  {
+    value: "normal",
+    label: "보통",
+    color: "text-blue-500",
+    bg: "bg-blue-500",
+  },
+  {
+    value: "low",
+    label: "낮음",
+    color: "text-slate-400",
+    bg: "bg-slate-400",
+  },
+];
 
-  // 다이얼로그 상태
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
+const PRIORITY_ORDER: Record<string, number> = {
+  urgent: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
 
-  // 필터 상태
-  const [filter, setFilter] = useState<FilterType>('all')
+function getPriorityConfig(p: string) {
+  return PRIORITIES.find((pr) => pr.value === p) || PRIORITIES[2];
+}
 
-  // 커스텀 훅
-  const { todos, addTodo, toggleTodo, deleteTodo, clearCompletedTodos, reorderTodos } = useTodos()
-  const { draggedItem, handleDragStart, handleDragOver, handleDrop, handleDragEnd } = useDragAndDrop<string>()
-  const { deletingItems, deleteWithAnimation, deleteMultipleWithAnimation } = useDeleteAnimation<string>()
+function getPriorityBadgeStyle(p: string) {
+  switch (p) {
+    case "urgent":
+      return "text-red-500 border-red-200/60 bg-red-50 dark:bg-red-950/30 dark:border-red-800/40";
+    case "high":
+      return "text-amber-500 border-amber-200/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/40";
+    case "normal":
+      return "text-blue-500 border-blue-200/60 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800/40";
+    case "low":
+      return "text-slate-400 border-slate-200/60 bg-slate-50 dark:bg-slate-800/30 dark:border-slate-700/40";
+    default:
+      return "text-blue-500 border-blue-200/60 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800/40";
+  }
+}
 
-  /* ============================================
-     Effects
-     ============================================ */
+function getPriorityLabel(p: string) {
+  return getPriorityConfig(p).label;
+}
 
-  /**
-   * 다이얼로그 상태 변경 알림 (부모 컴포넌트)
-   */
-  useEffect(() => {
-    onDialogChange?.(showAddDialog)
-  }, [showAddDialog, onDialogChange])
+export function TodoList() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [input, setInput] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [priority, setPriority] = useState<Priority>("normal");
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editPriority, setEditPriority] = useState<Priority>("normal");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
-  /* ============================================
-     Handlers
-     ============================================ */
-
-  /**
-   * 할일 추가/수정 핸들러
-   */
-  const handleAddTodo = useCallback((todo: { text: string; category?: string }) => {
-    addTodo(todo, editingTodo)
-    setEditingTodo(null)
-  }, [addTodo, editingTodo])
-
-  /**
-   * 할일 수정 시작
-   */
-  const startEditTodo = useCallback((todo: Todo) => {
-    setEditingTodo(todo)
-    setShowAddDialog(true)
-  }, [])
-
-  /**
-   * 할일 삭제 (애니메이션 포함)
-   */
-  const handleDeleteTodo = useCallback((id: string) => {
-    deleteWithAnimation(id, deleteTodo)
-  }, [deleteWithAnimation, deleteTodo])
-
-  /**
-   * 완료된 할일 모두 삭제
-   */
-  const handleClearCompleted = useCallback(() => {
-    const completedIds = todos.filter(todo => todo.completed).map(todo => todo.id)
-    deleteMultipleWithAnimation(completedIds, clearCompletedTodos)
-  }, [todos, deleteMultipleWithAnimation, clearCompletedTodos])
-
-  /* ============================================
-     Computed Values
-     ============================================ */
-
-  /**
-   * 통계 계산 (완료/전체)
-   */
-  const { completedCount, totalCount, activeCount } = useMemo(() => ({
-    completedCount: todos.filter(todo => todo.completed).length,
-    activeCount: todos.filter(todo => !todo.completed).length,
-    totalCount: todos.length
-  }), [todos])
-
-  /**
-   * 필터링된 할일 목록
-   */
-  const filteredTodos = useMemo(() => {
-    switch (filter) {
-      case 'active':
-        return todos.filter(todo => !todo.completed)
-      case 'completed':
-        return todos.filter(todo => todo.completed)
-      default:
-        return todos
+  const fetchTodos = useCallback(async () => {
+    try {
+      const data = await window.electron.ipcRenderer.invoke("todos:getAll");
+      setTodos(data || []);
+    } catch (err) {
+      console.error("Failed to fetch todos:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [todos, filter])
+  }, []);
 
-  /**
-   * 통계 변경 알림 (부모 컴포넌트)
-   */
   useEffect(() => {
-    onStatsChange?.({ completed: completedCount, total: totalCount })
-  }, [completedCount, totalCount, onStatsChange])
+    fetchTodos();
+  }, [fetchTodos]);
 
-  /**
-   * Ref를 통해 부모에서 다이얼로그 열기 기능 노출
-   */
-  useImperativeHandle(ref, () => ({
-    openAddDialog: () => setShowAddDialog(true)
-  }))
+  useEffect(() => {
+    if (editingId !== null && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingId]);
 
-  /* ============================================
-     Render
-     ============================================ */
+  const addTodo = async () => {
+    const text = input.trim();
+    if (!text) return;
+    try {
+      const created = await window.electron.ipcRenderer.invoke(
+        "todos:create",
+        { text, priority },
+      );
+      setTodos((prev) => [created, ...prev]);
+      setInput("");
+      setPriority("normal");
+      inputRef.current?.focus();
+    } catch (err) {
+      console.error("Failed to create todo:", err);
+    }
+  };
+
+  const toggleTodo = async (todo: Todo) => {
+    try {
+      const updated = await window.electron.ipcRenderer.invoke(
+        "todos:update",
+        todo.id,
+        { completed: !todo.completed },
+      );
+      setTodos((prev) => prev.map((t) => (t.id === todo.id ? updated : t)));
+    } catch (err) {
+      console.error("Failed to toggle todo:", err);
+    }
+  };
+
+  const deleteTodo = (id: number) => setDeletingId(id);
+
+  const handleAnimationEnd = async (id: number) => {
+    if (deletingId !== id) return;
+    try {
+      await window.electron.ipcRenderer.invoke("todos:delete", id);
+      setTodos((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      console.error("Failed to delete todo:", err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const startEdit = (todo: Todo) => {
+    if (todo.completed) return;
+    setEditingId(todo.id);
+    setEditText(todo.text);
+    setEditPriority((todo.priority || "normal") as Priority);
+  };
+
+  const saveEdit = async () => {
+    if (editingId === null) return;
+    const trimmed = editText.trim();
+    if (!trimmed) {
+      cancelEdit();
+      return;
+    }
+    try {
+      const updated = await window.electron.ipcRenderer.invoke(
+        "todos:update",
+        editingId,
+        { text: trimmed, priority: editPriority },
+      );
+      setTodos((prev) => prev.map((t) => (t.id === editingId ? updated : t)));
+    } catch (err) {
+      console.error("Failed to update todo:", err);
+    } finally {
+      setEditingId(null);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText("");
+  };
+
+  const filtered = todos
+    .filter((t) => {
+      if (filter === "active") return !t.completed;
+      if (filter === "completed") return !!t.completed;
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed - b.completed;
+      const pa = PRIORITY_ORDER[a.priority || "normal"] ?? 2;
+      const pb = PRIORITY_ORDER[b.priority || "normal"] ?? 2;
+      return pa - pb;
+    });
+
+  const activeCount = todos.filter((t) => !t.completed).length;
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <Card className="flex-1 border-0 bg-card">
-        {/* 헤더 - 필터 & 액션 버튼 */}
-        <CardHeader className="pb-3 pt-2 space-y-3">
-          {/* 필터 버튼 그룹 - 밑줄 스타일 */}
-          <div className="flex items-center gap-1 animate-fade-in border-b border-border">
-            <button
-              onClick={() => setFilter('all')}
-              className={`
-                relative h-10 px-4 flex items-center gap-2
-                text-sm font-medium transition-all
-                hover:text-foreground
-                ${filter === 'all'
-                  ? 'text-foreground'
-                  : 'text-muted-foreground'
-                }
-              `}
-            >
-              <ListTodo className="w-4 h-4" />
-              전체
-              <span className="px-2 py-0.5 text-xs rounded-full bg-muted/50">
-                {totalCount}
-              </span>
-              {/* 밑줄 인디케이터 */}
-              {filter === 'all' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary animate-slide-in-bottom" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setFilter('active')}
-              className={`
-                relative h-10 px-4 flex items-center gap-2
-                text-sm font-medium transition-all
-                hover:text-foreground
-                ${filter === 'active'
-                  ? 'text-foreground'
-                  : 'text-muted-foreground'
-                }
-              `}
-            >
-              <Circle className="w-4 h-4" />
-              진행중
-              <span className="px-2 py-0.5 text-xs rounded-full bg-muted/50">
-                {activeCount}
-              </span>
-              {/* 밑줄 인디케이터 */}
-              {filter === 'active' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary animate-slide-in-bottom" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setFilter('completed')}
-              className={`
-                relative h-10 px-4 flex items-center gap-2
-                text-sm font-medium transition-all
-                hover:text-foreground
-                ${filter === 'completed'
-                  ? 'text-foreground'
-                  : 'text-muted-foreground'
-                }
-              `}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              완료
-              <span className="px-2 py-0.5 text-xs rounded-full bg-muted/50">
-                {completedCount}
-              </span>
-              {/* 밑줄 인디케이터 */}
-              {filter === 'completed' && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary animate-slide-in-bottom" />
-              )}
-            </button>
-
-            {/* 완료 항목 정리 버튼 */}
-            {completedCount > 0 && (
-              <div className="flex-1 flex justify-end">
-                <Button
-                  onClick={handleClearCompleted}
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/15 active:scale-95 transition-all"
-                  title="완료된 할 일 삭제"
-                >
-                  <CheckCheck className="w-4 h-4 mr-2" />
-                  <span className="text-sm">완료 항목 정리</span>
-                </Button>
-              </div>
-            )}
+    <div className="w-full h-full flex flex-col overflow-hidden">
+      {/* ── 상단: 필터 + 입력 ── */}
+      <div className="flex-shrink-0 space-y-4 px-6 pt-2 pb-4">
+        {/* 타이틀 + 필터 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-[13px] font-bold leading-none">
+                나의 할 일
+              </h2>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                남은 항목 {activeCount}개
+              </p>
+            </div>
           </div>
-        </CardHeader>
 
-        {/* 콘텐츠 - 할일 리스트 */}
-        <CardContent className="space-y-4">
-          {/* 할일 목록 */}
-          <div className="space-y-3">
-            {filteredTodos.map((todo, index) => (
-              <div
-                key={todo.id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 30}ms` }}
+          <div className="inline-flex items-center gap-1 bg-muted/60 p-1 rounded-xl">
+            {(["all", "active", "completed"] as Filter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={cn(
+                  "px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all duration-200",
+                  filter === f
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
               >
-                <TodoItem
-                  todo={todo}
-                  isDeleting={deletingItems.has(todo.id)}
-                  isDragging={draggedItem === todo.id}
-                  onToggle={toggleTodo}
-                  onEdit={startEditTodo}
-                  onDelete={handleDeleteTodo}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDrop={(e, id) => handleDrop(e, id, reorderTodos)}
-                  onDragEnd={handleDragEnd}
-                />
-              </div>
+                {f === "all" ? "전체" : f === "active" ? "진행중" : "완료"}
+              </button>
             ))}
           </div>
+        </div>
 
-          {/* Empty State - 할일이 없을 때 */}
-          {filteredTodos.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 px-4 animate-fade-in">
-              {/* 아이콘 배경 효과 */}
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full" />
-                <div className="relative bg-gradient-to-br from-primary/20 to-primary/5 p-8 rounded-3xl border-2 border-primary/20 backdrop-blur-sm">
-                  <List className="w-16 h-16 mx-auto text-primary/40" strokeWidth={1.5} />
+        {/* 입력 영역 */}
+        <div className="rounded-2xl border border-border/50 bg-card p-3 space-y-2.5">
+          <div className="flex items-center gap-2">
+            <Input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTodo()}
+              placeholder="새로운 할 일을 입력하세요..."
+              className="h-10 text-[13px] flex-1 border-0 bg-muted/30 shadow-none rounded-xl px-3.5 focus-visible:ring-1 focus-visible:ring-primary/30 placeholder:text-muted-foreground/40 transition-all"
+            />
+            <Button
+              onClick={addTodo}
+              disabled={!input.trim()}
+              size="icon"
+              className="h-10 w-10 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shrink-0 transition-all duration-200 disabled:opacity-20"
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* 우선순위 세그먼트 */}
+          <div className="flex items-center gap-1 bg-muted/40 rounded-xl p-1">
+            {PRIORITIES.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setPriority(p.value)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200",
+                  priority === p.value
+                    ? "bg-background shadow-sm " + p.color
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full transition-colors",
+                    priority === p.value ? p.bg : "bg-muted-foreground/25",
+                  )}
+                />
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 할일 목록 ── */}
+      <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-2 scrollbar-thin">
+        {loading ? (
+          <div className="h-full flex items-center justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center py-12">
+            <div className="w-12 h-12 rounded-full bg-muted/40 flex items-center justify-center mb-3">
+              <ListFilter className="h-5 w-5 text-muted-foreground/30" />
+            </div>
+            <p className="text-[12px] text-muted-foreground/60 font-medium">
+              내역이 없습니다
+            </p>
+          </div>
+        ) : (
+          filtered.map((todo) =>
+            editingId === todo.id ? (
+              /* ── 편집 모드 ── */
+              <div
+                key={todo.id}
+                className="flex items-center gap-2.5 rounded-2xl border-2 border-primary/30 bg-primary/[0.03] px-4 py-2.5 transition-all"
+              >
+                <select
+                  value={editPriority}
+                  onChange={(e) =>
+                    setEditPriority(e.target.value as Priority)
+                  }
+                  className="text-[11px] font-semibold rounded-lg border border-border/50 px-2 py-1.5 bg-background shrink-0 outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                >
+                  {PRIORITIES.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+
+                <Input
+                  ref={editInputRef}
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEdit();
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                  onBlur={saveEdit}
+                  className="h-8 text-[13px] flex-1 border-0 bg-background/80 shadow-sm rounded-lg px-2.5 focus-visible:ring-1 focus-visible:ring-primary/30"
+                />
+
+                <button
+                  className="text-[11px] font-medium text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/50 transition-colors shrink-0"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    cancelEdit();
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            ) : (
+              /* ── 보기 모드 ── */
+              <div
+                key={todo.id}
+                onAnimationEnd={() => handleAnimationEnd(todo.id)}
+                className={cn(
+                  "group flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200",
+                  deletingId === todo.id && "animate-slide-out-right",
+                  todo.completed
+                    ? "border-border/30 bg-muted/5 opacity-50"
+                    : "border-border/50 bg-card hover:shadow-sm hover:border-border",
+                )}
+              >
+                <button
+                  onClick={() => toggleTodo(todo)}
+                  className="shrink-0 transition-transform active:scale-90"
+                >
+                  {todo.completed ? (
+                    <CheckCircle2 className="h-[18px] w-[18px] text-primary" />
+                  ) : (
+                    <Circle className="h-[18px] w-[18px] text-muted-foreground/40 hover:text-primary transition-colors" />
+                  )}
+                </button>
+
+                <div className="flex-1 flex items-center gap-2 overflow-hidden min-w-0">
+                  {!todo.completed && (
+                    <span
+                      className={cn(
+                        "text-[9px] font-bold px-1.5 py-0.5 rounded-md border shrink-0",
+                        getPriorityBadgeStyle(todo.priority || "normal"),
+                      )}
+                    >
+                      {getPriorityLabel(todo.priority || "normal")}
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "text-[13px] font-medium truncate",
+                      todo.completed && "line-through text-muted-foreground/60",
+                    )}
+                  >
+                    {todo.text}
+                  </span>
+                </div>
+
+                {/* 액션 버튼 */}
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  {!todo.completed && (
+                    <button
+                      className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-all"
+                      onClick={() => startEdit(todo)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button
+                    className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all"
+                    onClick={() => deleteTodo(todo.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
-
-              {/* 안내 텍스트 */}
-              <div className="mt-8 text-center space-y-2">
-                <p className="text-lg font-semibold text-foreground/70">
-                  {filter === 'active' && '진행중인 할 일이 없습니다'}
-                  {filter === 'completed' && '완료된 할 일이 없습니다'}
-                  {filter === 'all' && '할 일이 없습니다'}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {filter === 'all' ? '오늘의 할 일을 추가해보세요!' : '다른 필터를 선택해보세요'}
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 할 일 추가/수정 다이얼로그 */}
-      <TodoAdd
-        open={showAddDialog}
-        onOpenChange={(open) => {
-          setShowAddDialog(open)
-          onDialogChange?.(open)
-          if (!open) setEditingTodo(null)
-        }}
-        onAddTodo={handleAddTodo}
-        editingTodo={editingTodo}
-      />
+            ),
+          )
+        )}
+      </div>
     </div>
-  )
-})
+  );
+}

@@ -73,8 +73,14 @@ module.exports = {
           "slideUpFade 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "slide-out-right":
+          "slideOutRight 0.2s cubic-bezier(0.4, 0, 1, 1) forwards",
       },
       keyframes: {
+        slideOutRight: {
+          "0%": { opacity: "1", transform: "translateX(0)" },
+          "100%": { opacity: "0", transform: "translateX(80px)" },
+        },
         slideUpFade: {
           "0%": { opacity: "0", transform: "translateY(20px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
