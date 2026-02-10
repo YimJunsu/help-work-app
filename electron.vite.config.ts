@@ -79,28 +79,6 @@ export default defineConfig({
       minify: "esbuild",
       rollupOptions: {
         output: {
-          manualChunks: (id): string | undefined => {
-            if (!id.includes("node_modules")) return;
-
-            if (id.includes("react") || id.includes("react-dom")) {
-              return "vendor-react";
-            }
-            if (id.includes("@radix-ui")) {
-              return "vendor-ui";
-            }
-            if (id.includes("chart.js") || id.includes("react-chartjs")) {
-              return "vendor-chart";
-            }
-            if (id.includes("date-fns")) {
-              return "vendor-date";
-            }
-            if (id.includes("lucide-react")) {
-              return "vendor-icons";
-            }
-
-            return "vendor-other";
-          },
-
           chunkFileNames: "js/[name]-[hash].js",
           entryFileNames: "js/[name]-[hash].js",
           assetFileNames: "assets/[name]-[hash].[ext]",
@@ -120,10 +98,6 @@ export default defineConfig({
     esbuild: {
       drop:
         process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
-      treeShaking: true,
-      minifyIdentifiers: true,
-      minifySyntax: true,
-      minifyWhitespace: true,
     },
   },
 });
