@@ -273,22 +273,80 @@ function SettingsRow({
   );
 }
 
+type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "downloaded" | "not-available" | "error";
+
 function UpdateSection() {
   const [currentVersion, setCurrentVersion] = useState("");
-  const [checking, setChecking] = useState(false);
+  const [status, setStatus] = useState<UpdateStatus>("idle");
+  const [progress, setProgress] = useState(0);
+  const [newVersion, setNewVersion] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     window.electron?.ipcRenderer
       .invoke("get-app-version")
-      .then((v) => setCurrentVersion(v))
+      .then((v: string) => setCurrentVersion(v))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const onAvailable = (_: unknown, info: { version?: string }) => {
+      setStatus("available");
+      setNewVersion(info?.version || "");
+    };
+    const onNotAvailable = () => {
+      setStatus("not-available");
+    };
+    const onProgress = (_: unknown, p: { percent?: number }) => {
+      setStatus("downloading");
+      setProgress(Math.round(p?.percent || 0));
+    };
+    const onDownloaded = () => {
+      setStatus("downloaded");
+    };
+    const onError = (_: unknown, err: string) => {
+      setStatus("error");
+      setErrorMsg(typeof err === "string" ? err : "업데이트 중 오류가 발생했습니다.");
+    };
+
+    window.electron.ipcRenderer.on("update-available", onAvailable);
+    window.electron.ipcRenderer.on("update-not-available", onNotAvailable);
+    window.electron.ipcRenderer.on("download-progress", onProgress);
+    window.electron.ipcRenderer.on("update-downloaded", onDownloaded);
+    window.electron.ipcRenderer.on("update-error", onError);
+
+    return () => {
+      window.electron.ipcRenderer.removeAllListeners("update-available");
+      window.electron.ipcRenderer.removeAllListeners("update-not-available");
+      window.electron.ipcRenderer.removeAllListeners("download-progress");
+      window.electron.ipcRenderer.removeAllListeners("update-downloaded");
+      window.electron.ipcRenderer.removeAllListeners("update-error");
+    };
+  }, []);
+
+  const handleCheckUpdate = () => {
+    setStatus("checking");
+    setErrorMsg("");
+    window.electron.ipcRenderer.send("check-for-updates");
+  };
+
+  const handleDownload = () => {
+    setStatus("downloading");
+    setProgress(0);
+    window.electron.ipcRenderer.send("download-update");
+  };
+
+  const handleInstall = () => {
+    window.electron.ipcRenderer.send("quit-and-install");
+  };
+
+  const statusIcon = status === "checking" || status === "downloading";
 
   return (
     <div className="flex flex-col items-center justify-center h-full animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div className="w-20 h-20 bg-slate-50 rounded-[28px] border border-slate-100 flex items-center justify-center mb-6 shadow-sm">
         <div className="w-12 h-12 bg-blue-500 rounded-[18px] flex items-center justify-center text-white shadow-inner">
-          <RefreshCw className={cn("w-6 h-6", checking && "animate-spin")} />
+          <RefreshCw className={cn("w-6 h-6", statusIcon && "animate-spin")} />
         </div>
       </div>
       <h2 className="text-xl font-black text-slate-900">소프트웨어 업데이트</h2>
@@ -297,24 +355,100 @@ function UpdateSection() {
       </p>
 
       <div className="w-full bg-slate-50 rounded-[24px] p-6 border border-slate-100 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="text-left">
-            <h4 className="font-bold text-[14px]">자동 업데이트</h4>
-            <p className="text-[11px] text-slate-400">
-              최신 기능을 자동으로 유지합니다.
+        {/* 상태별 메시지 */}
+        {status === "not-available" && (
+          <div className="text-center py-2">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+            <p className="text-[13px] font-semibold text-slate-700">최신 버전입니다</p>
+          </div>
+        )}
+
+        {status === "available" && (
+          <div className="text-center py-2">
+            <Download className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+            <p className="text-[13px] font-semibold text-slate-700">
+              새 버전 {newVersion ? `v${newVersion}` : ""}을 사용할 수 있습니다
             </p>
           </div>
-          <div className="w-10 h-6 bg-emerald-500 rounded-full flex items-center px-1">
-            <div className="w-4 h-4 bg-white rounded-full shadow-sm ml-auto" />
+        )}
+
+        {status === "downloading" && (
+          <div className="py-2">
+            <p className="text-[13px] font-semibold text-slate-700 text-center mb-3">
+              다운로드 중... {progress}%
+            </p>
+            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
-        </div>
-        <Button
-          onClick={() => setChecking(true)}
-          disabled={checking}
-          className="w-full h-12 rounded-[16px] bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 shadow-sm font-bold transition-all mt-2"
-        >
-          {checking ? "업데이트 확인 중..." : "지금 업데이트 확인"}
-        </Button>
+        )}
+
+        {status === "downloaded" && (
+          <div className="text-center py-2">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+            <p className="text-[13px] font-semibold text-slate-700">
+              다운로드 완료! 재시작하여 설치합니다.
+            </p>
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="text-center py-2">
+            <p className="text-[13px] font-semibold text-red-500">{errorMsg}</p>
+          </div>
+        )}
+
+        {/* 액션 버튼 */}
+        {(status === "idle" || status === "not-available" || status === "error") && (
+          <Button
+            onClick={handleCheckUpdate}
+            className="w-full h-12 rounded-[16px] bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 shadow-sm font-bold transition-all"
+          >
+            지금 업데이트 확인
+          </Button>
+        )}
+
+        {status === "checking" && (
+          <Button
+            disabled
+            className="w-full h-12 rounded-[16px] bg-white text-slate-900 border border-slate-200 shadow-sm font-bold"
+          >
+            <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+            업데이트 확인 중...
+          </Button>
+        )}
+
+        {status === "available" && (
+          <Button
+            onClick={handleDownload}
+            className="w-full h-12 rounded-[16px] bg-blue-500 hover:bg-blue-600 text-white shadow-sm font-bold transition-all"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            업데이트 다운로드
+          </Button>
+        )}
+
+        {status === "downloading" && (
+          <Button
+            disabled
+            className="w-full h-12 rounded-[16px] bg-blue-500 text-white shadow-sm font-bold"
+          >
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            다운로드 중...
+          </Button>
+        )}
+
+        {status === "downloaded" && (
+          <Button
+            onClick={handleInstall}
+            className="w-full h-12 rounded-[16px] bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm font-bold transition-all"
+          >
+            재시작하여 설치
+          </Button>
+        )}
       </div>
       <p className="text-[11px] text-slate-300 mt-6 font-medium">
         최신 버전 확인 시 인터넷 연결이 필요합니다.

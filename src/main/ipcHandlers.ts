@@ -393,10 +393,8 @@ function registerAutoUpdaterHandlers(mainWindow: BrowserWindow): void {
   })
 
   // Auto-updater configuration
-  if (process.platform === 'darwin') {
-    autoUpdater.allowDowngrade = false
-    autoUpdater.autoDownload = false
-  }
+  autoUpdater.allowDowngrade = false
+  autoUpdater.autoDownload = false
 
   // Auto-updater events
   autoUpdater.on('update-available', (info) => {
@@ -417,7 +415,17 @@ function registerAutoUpdaterHandlers(mainWindow: BrowserWindow): void {
 
   autoUpdater.on('error', (error) => {
     console.error('Auto-update error:', error)
+    mainWindow.webContents.send('update-error', error?.message || String(error))
   })
+
+  // 앱 시작 후 자동 업데이트 확인 (5초 딜레이)
+  if (!is.dev) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.error('Auto-update check failed:', err)
+      })
+    }, 5000)
+  }
 }
 
 /**
