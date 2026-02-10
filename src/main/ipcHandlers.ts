@@ -114,6 +114,7 @@ function registerScheduleHandlers(): void {
       completed: schedule.completed,
       category: schedule.category,
       dueDate: schedule.dueDate ? new Date(schedule.dueDate) : undefined,
+      dueTime: schedule.dueTime,
       clientName: schedule.clientName,
       requestNumber: schedule.requestNumber,
       webData: schedule.webData
@@ -132,6 +133,7 @@ function registerScheduleHandlers(): void {
     completed?: boolean
     category?: string
     dueDate?: string | null
+    dueTime?: string | null
     clientName?: string
     requestNumber?: string
     webData?: boolean
@@ -143,6 +145,7 @@ function registerScheduleHandlers(): void {
       dueDate: updates.dueDate !== undefined
         ? updates.dueDate ? new Date(updates.dueDate) : null
         : undefined,
+      dueTime: updates.dueTime,
       clientName: updates.clientName,
       requestNumber: updates.requestNumber,
       webData: updates.webData
@@ -194,12 +197,14 @@ function registerMemoHandlers(): void {
 
   ipcMain.handle('memos:create', (_event, memo) => {
     return createMemo({
+      title: memo.title,
       content: memo.content
     })
   })
 
   ipcMain.handle('memos:update', (_event, id, updates) => {
     return updateMemo(id, {
+      title: updates.title,
       content: updates.content
     })
   })

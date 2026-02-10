@@ -24,8 +24,10 @@ import {
 import { Button } from "./ui/button";
 import { Dashboard } from "../pages/Dashboard";
 import { TodoList } from "../pages/TodoList";
-import { UniSupport } from "../pages/UniSupport";
+import { UniSupport, prefetchUniSupportData } from "../pages/UniSupport";
 import { Settings as SettingsPage } from "../pages/Settings";
+import { Memo } from "../pages/Memo";
+import { DutySchedule } from "../pages/DutySchedule";
 import { WorkBatteryIndicator } from "./WorkBatteryIndicator";
 import uniFightingLogo from "@resources/uni_fighting.png";
 
@@ -47,6 +49,11 @@ export function Layout() {
     }
     localStorage.setItem("theme", dark ? "dark" : "light");
   }, [dark]);
+
+  // 앱 시작 시 UniSupport 데이터 프리패치
+  useEffect(() => {
+    prefetchUniSupportData();
+  }, []);
 
   // 업데이트 감지
   useEffect(() => {
@@ -197,9 +204,11 @@ export function Layout() {
           </header>
 
           <main className="flex-1 flex flex-col overflow-hidden p-6">
-            {currentPage === "dashboard" && <Dashboard />}
+            {currentPage === "dashboard" && <Dashboard onNavigate={setCurrentPage} />}
             {currentPage === "todolist" && <TodoList />}
+            {currentPage === "schedule" && <DutySchedule />}
             {currentPage === "unisupport" && <UniSupport />}
+            {currentPage === "memo" && <Memo />}
             {currentPage === "setting" && <SettingsPage />}
           </main>
         </SidebarInset>

@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tiptap Editor Styles */
+.ProseMirror {
+  outline: none;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground) / 0.4);
+  pointer-events: none;
+  height: 0;
+}
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.2em;
+}
+.ProseMirror ul {
+  list-style-type: disc;
+}
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+/* 스크롤 영역 레이아웃 시프트 방지 */
+.scrollbar-stable {
+  scrollbar-gutter: stable;
+}
+
+/* line-clamp utility */
+.line-clamp-5 {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 @layer base {
   * {
     @apply border-border;

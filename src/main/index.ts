@@ -54,8 +54,8 @@ function createSplashWindow(): void {
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 800,
+    width: 900,
+    height: 700,
     show: false,
     resizable: false,
     autoHideMenuBar: true,
@@ -84,11 +84,11 @@ function createWindow(): void {
     }, 1500)
   })
 
-  // 창 닫기 버튼을 눌렀을 때 최소화로 변경
+  // 창 닫기 버튼(X)을 눌렀을 때 최소화 동작으로 변경
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault()
-      mainWindow?.hide()
+      mainWindow?.minimize()
     }
   })
 

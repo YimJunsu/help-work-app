@@ -16,6 +16,7 @@ export interface Schedule {
   completed: number // SQLite uses INTEGER for boolean (0 = false, 1 = true)
   category?: string
   dueDate?: string // Store as ISO string
+  dueTime?: string // HH:mm format
   clientName?: string
   requestNumber?: string // 접수번호
   webData?: boolean // 웹데이터 유무
@@ -25,6 +26,7 @@ export interface Schedule {
 
 export interface Memo {
   id: number
+  title: string
   content: string
   createdAt: string
   updatedAt: string
@@ -88,6 +90,7 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
         completed INTEGER DEFAULT 0,
         category TEXT,
         dueDate TEXT,
+        dueTime TEXT,
         clientName TEXT,
         requestNumber TEXT,
         webData INTEGER DEFAULT 0,
@@ -101,8 +104,8 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
       if (schedules.length > 0) {
         console.log(`Migrating ${schedules.length} schedules...`)
         const insertStmt = newSchedulesDb.prepare(`
-          INSERT INTO schedules (id, text, completed, category, dueDate, clientName, requestNumber, webData, createdAt, updatedAt)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO schedules (id, text, completed, category, dueDate, dueTime, clientName, requestNumber, webData, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
 
         for (const schedule of schedules as any[]) {
@@ -112,6 +115,7 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
             schedule.completed,
             schedule.category,
             schedule.dueDate,
+            schedule.dueTime || null,
             schedule.clientName,
             schedule.requestNumber || null,
             schedule.webData,
@@ -133,6 +137,7 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
     newMemosDb.exec(`
       CREATE TABLE IF NOT EXISTS memos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL DEFAULT '',
         content TEXT NOT NULL,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
@@ -275,6 +280,7 @@ export function initDatabase(): Database.Database {
       completed INTEGER DEFAULT 0,
       category TEXT,
       dueDate TEXT,
+      dueTime TEXT,
       clientName TEXT,
       requestNumber TEXT,
       webData INTEGER DEFAULT 0,
@@ -304,6 +310,13 @@ export function initDatabase(): Database.Database {
     // Column already exists, ignore error
   }
 
+  // Add dueTime column if it doesn't exist (for existing databases)
+  try {
+    schedulesDb.exec(`ALTER TABLE schedules ADD COLUMN dueTime TEXT`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
   // 2. Memos DB 초기화
   const memosDbPath = path.join(datasPath, 'memos.db')
   memosDb = new Database(memosDbPath)
@@ -311,11 +324,19 @@ export function initDatabase(): Database.Database {
   memosDb.exec(`
     CREATE TABLE IF NOT EXISTS memos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL DEFAULT '',
       content TEXT NOT NULL,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )
   `)
+
+  // Add title column if it doesn't exist (for existing databases)
+  try {
+    memosDb.exec(`ALTER TABLE memos ADD COLUMN title TEXT NOT NULL DEFAULT ''`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
 
   // 3. Todo Stats DB 초기화
   const todoStatsDbPath = path.join(datasPath, 'todo_stats.db')
@@ -459,6 +480,7 @@ export function createSchedule(schedule: {
   completed?: boolean
   category?: string
   dueDate?: Date
+  dueTime?: string
   clientName?: string
   requestNumber?: string
   webData?: boolean
@@ -468,8 +490,8 @@ export function createSchedule(schedule: {
   const now = new Date().toISOString()
 
   const stmt = schedulesDb.prepare(`
-    INSERT INTO schedules (text, completed, category, dueDate, clientName, requestNumber, webData, createdAt, updatedAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO schedules (text, completed, category, dueDate, dueTime, clientName, requestNumber, webData, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const result = stmt.run(
@@ -477,6 +499,7 @@ export function createSchedule(schedule: {
     schedule.completed ? 1 : 0,
     schedule.category || null,
     schedule.dueDate ? schedule.dueDate.toISOString() : null,
+    schedule.dueTime || null,
     schedule.clientName || null,
     schedule.requestNumber || null,
     schedule.webData ? 1 : 0,
@@ -492,6 +515,7 @@ export function updateSchedule(id: number, updates: {
   completed?: boolean
   category?: string
   dueDate?: Date | null
+  dueTime?: string | null
   clientName?: string
   requestNumber?: string
   webData?: boolean
@@ -518,6 +542,10 @@ export function updateSchedule(id: number, updates: {
   if (updates.dueDate !== undefined) {
     fields.push('dueDate = ?')
     values.push(updates.dueDate ? updates.dueDate.toISOString() : null)
+  }
+  if (updates.dueTime !== undefined) {
+    fields.push('dueTime = ?')
+    values.push(updates.dueTime || null)
   }
   if (updates.clientName !== undefined) {
     fields.push('clientName = ?')
@@ -577,32 +605,32 @@ export function getMemoById(id: number): Memo | undefined {
   return stmt.get(id) as Memo | undefined
 }
 
-export function createMemo(memo: { content: string }): Memo {
+export function createMemo(memo: { title: string; content: string }): Memo {
   if (!memosDb) throw new Error('Memos database not initialized')
 
   const now = new Date().toISOString()
 
   const stmt = memosDb.prepare(`
-    INSERT INTO memos (content, createdAt, updatedAt)
-    VALUES (?, ?, ?)
+    INSERT INTO memos (title, content, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?)
   `)
 
-  const result = stmt.run(memo.content, now, now)
+  const result = stmt.run(memo.title, memo.content, now, now)
   return getMemoById(Number(result.lastInsertRowid))!
 }
 
-export function updateMemo(id: number, updates: { content: string }): Memo {
+export function updateMemo(id: number, updates: { title: string; content: string }): Memo {
   if (!memosDb) throw new Error('Memos database not initialized')
 
   const now = new Date().toISOString()
 
   const stmt = memosDb.prepare(`
     UPDATE memos
-    SET content = ?, updatedAt = ?
+    SET title = ?, content = ?, updatedAt = ?
     WHERE id = ?
   `)
 
-  stmt.run(updates.content, now, id)
+  stmt.run(updates.title, updates.content, now, id)
   return getMemoById(id)!
 }
 
