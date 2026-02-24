@@ -205,8 +205,8 @@ app.whenReady().then(() => {
   app.setPath('userData', userDataPath)
   console.log('Set userData path to:', app.getPath('userData'))
 
-  // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  // Set app user model id for windows (must match electron-builder appId)
+  electronApp.setAppUserModelId('com.yimjunsu.help-work-app')
 
   // Enable F12 DevTools only in development for security
   app.on('browser-window-created', (_, window) => {

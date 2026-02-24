@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
-  Trash2,
-  Pencil,
   CalendarCheck,
   Loader2,
   Clock,
@@ -13,16 +11,7 @@ import {
   ListFilter,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Checkbox } from "../components/ui/checkbox";
 import { Badge } from "../components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "../components/ui/dialog";
 import { cn } from "../lib/utils";
 import {
   ScheduleFormDialog,
@@ -118,10 +107,9 @@ export function DutySchedule() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchSchedules = useCallback(async () => {
     try {
@@ -200,36 +188,15 @@ export function DutySchedule() {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDelete = async (id: number) => {
     try {
-      const ids = Array.from(selectedIds);
-      await Promise.all(
-        ids.map((id) =>
-          window.electron.ipcRenderer.invoke("schedules:delete", id),
-        ),
-      );
-      setSchedules((prev) => prev.filter((s) => !selectedIds.has(s.id)));
-      setSelectedIds(new Set());
-      setDeleteConfirmOpen(false);
+      await window.electron.ipcRenderer.invoke("schedules:delete", id);
+      setSchedules((prev) => prev.filter((s) => s.id !== id));
+      setEditingSchedule(null);
+      setDeletingId(null);
     } catch (err) {
-      console.error("Failed to delete schedules:", err);
+      console.error("Failed to delete schedule:", err);
     }
-  };
-
-  const toggleSelect = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const handleEditSelected = () => {
-    if (selectedIds.size !== 1) return;
-    const id = Array.from(selectedIds)[0];
-    const s = schedules.find((sc) => sc.id === id);
-    if (s) setEditingSchedule(s);
   };
 
   // ── 필터 + 정렬 ──
@@ -304,38 +271,6 @@ export function DutySchedule() {
               ))}
             </div>
 
-            {/* 수정 */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-8 w-8 rounded-xl transition-colors",
-                selectedIds.size === 1
-                  ? "text-primary hover:bg-primary/10"
-                  : "text-muted-foreground/30 cursor-not-allowed",
-              )}
-              disabled={selectedIds.size !== 1}
-              onClick={handleEditSelected}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-
-            {/* 삭제 */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-8 w-8 rounded-xl transition-colors",
-                selectedIds.size > 0
-                  ? "text-destructive hover:bg-destructive/10"
-                  : "text-muted-foreground/30 cursor-not-allowed",
-              )}
-              disabled={selectedIds.size === 0}
-              onClick={() => setDeleteConfirmOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-
             {/* 추가 */}
             <Button
               size="icon"
@@ -367,34 +302,25 @@ export function DutySchedule() {
           filtered.map((schedule) => {
             const dday = schedule.completed ? null : getDday(schedule.dueDate);
             const ddayStyle = getDdayColor(dday);
-            const isSelected = selectedIds.has(schedule.id);
 
             return (
               <div
                 key={schedule.id}
+                onClick={() => setEditingSchedule(schedule)}
                 className={cn(
-                  "rounded-2xl border px-4 py-3.5 transition-colors duration-150",
+                  "rounded-2xl border px-4 py-3.5 transition-colors duration-150 cursor-pointer",
                   schedule.completed
-                    ? "border-border/30 bg-muted/5 opacity-50"
-                    : "border-border/50 bg-card",
+                    ? "border-border/30 bg-muted/5 opacity-50 hover:opacity-70"
+                    : "border-border/50 bg-card hover:bg-muted/20",
                 )}
               >
                 <div className="flex items-start gap-3">
-                  {/* 체크박스 (선택) */}
-                  <div
-                    className="pt-0.5 shrink-0"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleSelect(schedule.id)}
-                      className="h-4 w-4 rounded-[4px] border-2 border-muted-foreground/30"
-                    />
-                  </div>
-
                   {/* 완료 토글 */}
                   <button
-                    onClick={() => toggleComplete(schedule)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleComplete(schedule);
+                    }}
                     className="pt-0.5 shrink-0 transition-transform active:scale-90"
                   >
                     {schedule.completed ? (
@@ -429,14 +355,20 @@ export function DutySchedule() {
                     </div>
 
                     {/* 2행: 메타 정보 (· 구분) */}
-                    {(schedule.requestNumber || schedule.clientName || schedule.dueDate || schedule.webData) && (
+                    {(schedule.requestNumber ||
+                      schedule.clientName ||
+                      schedule.dueDate ||
+                      schedule.webData) && (
                       <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60 flex-wrap">
                         {schedule.requestNumber && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               const url = `https://114.unipost.co.kr/home.uni?access=list&srIdx=${schedule.requestNumber}`;
-                              window.electron?.ipcRenderer.send("open-external", url);
+                              window.electron?.ipcRenderer.send(
+                                "open-external",
+                                url,
+                              );
                             }}
                             className="font-mono font-bold text-primary hover:underline"
                           >
@@ -445,7 +377,11 @@ export function DutySchedule() {
                         )}
                         {schedule.clientName && (
                           <>
-                            {schedule.requestNumber && <span className="text-muted-foreground/30">·</span>}
+                            {schedule.requestNumber && (
+                              <span className="text-muted-foreground/30">
+                                ·
+                              </span>
+                            )}
                             <span className="flex items-center gap-0.5">
                               <User className="h-3 w-3" />
                               {schedule.clientName}
@@ -454,7 +390,12 @@ export function DutySchedule() {
                         )}
                         {schedule.dueDate && (
                           <>
-                            {(schedule.requestNumber || schedule.clientName) && <span className="text-muted-foreground/30">·</span>}
+                            {(schedule.requestNumber ||
+                              schedule.clientName) && (
+                              <span className="text-muted-foreground/30">
+                                ·
+                              </span>
+                            )}
                             <span className="flex items-center gap-0.5">
                               <Clock className="h-3 w-3" />
                               {formatDate(schedule.dueDate)}
@@ -464,7 +405,13 @@ export function DutySchedule() {
                         )}
                         {schedule.webData && (
                           <>
-                            {(schedule.requestNumber || schedule.clientName || schedule.dueDate) && <span className="text-muted-foreground/30">·</span>}
+                            {(schedule.requestNumber ||
+                              schedule.clientName ||
+                              schedule.dueDate) && (
+                              <span className="text-muted-foreground/30">
+                                ·
+                              </span>
+                            )}
                             <span className="flex items-center gap-0.5">
                               <Globe className="h-3 w-3" />웹
                             </span>
@@ -474,39 +421,86 @@ export function DutySchedule() {
                     )}
                   </div>
 
-                  {/* D-day 뱃지 */}
-                  {dday !== null && (
-                    <div
-                      className={cn(
-                        "shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold",
-                        ddayStyle.bg,
-                        ddayStyle.text,
-                      )}
-                    >
-                      <span className="relative flex h-2 w-2">
-                        {ddayStyle.animate && (
+                  {/* D-day 배지 / 삭제 버튼 영역 */}
+                  <div className="shrink-0 flex items-center">
+                    {dday !== null ? (
+                      /* D-day 배지 (미완료 + 마감일 있을 때) */
+                      <div
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold",
+                          ddayStyle.bg,
+                          ddayStyle.text,
+                        )}
+                      >
+                        <span className="relative flex h-2 w-2">
+                          {ddayStyle.animate && (
+                            <span
+                              className={cn(
+                                "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                                ddayStyle.dot,
+                              )}
+                            />
+                          )}
                           <span
                             className={cn(
-                              "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                              "relative inline-flex rounded-full h-2 w-2",
                               ddayStyle.dot,
                             )}
                           />
+                        </span>
+                        {getDdayText(dday)}
+                      </div>
+                    ) : schedule.completed ? (
+                      /* 완료 상태 → 삭제 버튼 / 인라인 확인 */
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5"
+                      >
+                        {deletingId === schedule.id ? (
+                          <>
+                            <span className="text-[10px] text-destructive font-medium">
+                              삭제할까요?
+                            </span>
+                            <button
+                              onClick={() => handleDelete(schedule.id)}
+                              className="text-[10px] font-bold text-destructive hover:underline"
+                            >
+                              확인
+                            </button>
+                            <span className="text-muted-foreground/30 text-[10px]">
+                              ·
+                            </span>
+                            <button
+                              onClick={() => setDeletingId(null)}
+                              className="text-[10px] text-muted-foreground/60 hover:text-foreground"
+                            >
+                              취소
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setDeletingId(schedule.id)}
+                            className="text-[10px] bg-destructive text-white hover:bg-destructive/90 transition-colors px-2 py-1 rounded-lg border border-destructive"
+                          >
+                            삭제
+                          </button>
                         )}
-                        <span
-                          className={cn(
-                            "relative inline-flex rounded-full h-2 w-2",
-                            ddayStyle.dot,
-                          )}
-                        />
-                      </span>
-                      {getDdayText(dday)}
-                    </div>
-                  )}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             );
           })
         )}
+      </div>
+
+      {/* ── 알림 주의사항 ── */}
+      <div className="flex-shrink-0 px-6 py-2.5 border-t border-border/20">
+        <p className="text-[10px] text-muted-foreground/40 text-center leading-relaxed">
+          스케줄 알림은 <span className="font-semibold">설치된 앱</span>에서만 동작합니다.
+          알림이 표시되지 않으면 Windows 설정 → 시스템 → 알림에서 앱 차단 여부를 확인하세요.
+        </p>
       </div>
 
       {/* ── 생성 다이얼로그 ── */}
@@ -531,35 +525,6 @@ export function DutySchedule() {
           mode="edit"
         />
       )}
-
-      {/* ── 삭제 확인 ── */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-[15px]">스케줄 삭제</DialogTitle>
-            <DialogDescription className="text-[12px]">
-              선택한 {selectedIds.size}개의 스케줄을 삭제하시겠습니까? 이 작업은
-              되돌릴 수 없습니다.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setDeleteConfirmOpen(false)}
-              className="rounded-xl text-[12px] h-9"
-            >
-              취소
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteSelected}
-              className="rounded-xl text-[12px] h-9"
-            >
-              삭제
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

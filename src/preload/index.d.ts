@@ -9,9 +9,16 @@ interface ExtendedElectronAPI extends ElectronAPI {
   }
 }
 
+interface AppAPI {
+  onThemeChange: (callback: (isDark: boolean) => void) => void
+  onScheduleNotify: (callback: (data: { title: string; body: string }) => void) => void
+  closeNotification: () => void
+}
+
 declare global {
   interface Window {
     electron: ExtendedElectronAPI
-    api: unknown
+    api: AppAPI
+    electronAPI: AppAPI
   }
 }

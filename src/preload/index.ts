@@ -6,6 +6,9 @@ const api = {
   onThemeChange: (callback: (isDark: boolean) => void) => {
     ipcRenderer.on('theme-changed', (_event, isDark) => callback(isDark))
   },
+  onScheduleNotify: (callback: (data: { title: string; body: string }) => void) => {
+    ipcRenderer.on('schedule:notify', (_event, data) => callback(data))
+  },
   closeNotification: () => {
     ipcRenderer.send('close-notification')
   }

@@ -241,7 +241,12 @@ function migrateDataFromOldDatabase(userDataPath: string, datasPath: string): vo
     console.log('Migration completed successfully')
 
     // 마이그레이션 완료 후 기존 DB 백업
+    // Windows에서 fs.renameSync는 대상 파일이 존재하면 EEXIST 오류를 던지므로
+    // 기존 백업 파일이 있으면 먼저 삭제 후 rename
     const backupPath = path.join(userDataPath, 'schedules.db.backup')
+    if (fs.existsSync(backupPath)) {
+      fs.unlinkSync(backupPath)
+    }
     fs.renameSync(oldDbPath, backupPath)
     console.log(`Old database backed up to: ${backupPath}`)
 

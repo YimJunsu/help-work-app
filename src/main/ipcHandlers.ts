@@ -1,5 +1,4 @@
-import { ipcMain, BrowserWindow, screen, shell } from 'electron'
-import { join } from 'path'
+import { ipcMain, BrowserWindow, shell, Notification } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import {
@@ -39,13 +38,14 @@ const notifiedSchedules = new Set<number>()
 // 스케줄별 타이머를 저장하는 Map
 const scheduleTimers = new Map<number, NodeJS.Timeout>()
 
-// 현재 표시 중인 알림 창들
-const notificationWindows: BrowserWindow[] = []
+// 알림 클릭 시 창 포커스를 위한 mainWindow 참조
+let storedMainWindow: BrowserWindow | null = null
 
 /**
  * 모든 IPC 핸들러를 등록하는 함수
  */
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
+  storedMainWindow = mainWindow
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
@@ -54,7 +54,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     const { app } = require('electron')
     const path = require('path')
     const userDataPath = app.getPath('userData')
-    const dbPath = path.join(userDataPath, 'schedules.db')
+    const dbPath = path.join(userDataPath, 'datas', 'schedules.db')
     console.log('[IPC] Database path:', dbPath)
     return dbPath
   })
@@ -79,18 +79,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Auto-updater IPC handlers
   registerAutoUpdaterHandlers(mainWindow)
-
-  // Notification handlers
-  ipcMain.on('close-notification', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (win) {
-      const index = notificationWindows.indexOf(win)
-      if (index > -1) {
-        notificationWindows.splice(index, 1)
-      }
-      win.close()
-    }
-  })
 
   // Open external URL
   ipcMain.on('open-external', (_event, url: string) => {
@@ -429,76 +417,46 @@ function registerAutoUpdaterHandlers(mainWindow: BrowserWindow): void {
 }
 
 /**
- * 개별 스케줄에 대한 알람 표시
+ * 개별 스케줄에 대한 알림 표시
+ * - 앱 포커스 상태: 렌더러로 IPC 전송 → 인앱 토스트
+ * - 앱 비포커스 상태: Windows 네이티브 알림
  */
 function showScheduleNotification(schedule: { id: number; text: string; clientName?: string | null }): void {
   if (notifiedSchedules.has(schedule.id)) return
 
-  // 화면 정보 가져오기
-  const primaryDisplay = screen.getPrimaryDisplay()
-  const { width, height } = primaryDisplay.workAreaSize
+  const title = schedule.clientName
+    ? `[${schedule.clientName}] 스케줄 마감`
+    : '스케줄 마감 알림'
 
-  // 알림 창 위치 계산 (우측 하단)
-  const notificationWidth = 380
-  const notificationHeight = 140
-  const margin = 16
-  const x = width - notificationWidth - margin
-  const y = height - notificationHeight - margin - (notificationWindows.length * (notificationHeight + margin))
+  const isFocused =
+    storedMainWindow &&
+    !storedMainWindow.isDestroyed() &&
+    storedMainWindow.isFocused()
 
-  // URL 파라미터 생성
-  const params = new URLSearchParams({
-    message: schedule.text,
-    ...(schedule.clientName && { client: schedule.clientName })
-  })
-
-  // 알림 창 생성
-  const notificationWindow = new BrowserWindow({
-    width: notificationWidth,
-    height: notificationHeight,
-    x: x,
-    y: y,
-    frame: false,
-    transparent: true,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    resizable: false,
-    focusable: true,
-    show: false,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: true, // Enable sandbox for security
-      devTools: false // Disable DevTools for notification windows
-    }
-  })
-
-  // HTML 파일 로드
-  if (is.dev) {
-    notificationWindow.loadFile(join(__dirname, '../../resources/notification.html'), {
-      search: params.toString()
+  if (isFocused) {
+    // 앱이 포커스 상태 → 인앱 토스트
+    storedMainWindow!.webContents.send('schedule:notify', {
+      title,
+      body: schedule.text,
     })
   } else {
-    notificationWindow.loadFile(join(process.resourcesPath, 'notification.html'), {
-      search: params.toString()
-    })
-  }
+    // 앱이 비포커스 상태 → Windows 네이티브 알림
+    if (Notification.isSupported()) {
+      const notification = new Notification({
+        title,
+        body: schedule.text,
+      })
 
-  // 창이 준비되면 표시
-  notificationWindow.once('ready-to-show', () => {
-    notificationWindow.show()
-  })
+      notification.on('click', () => {
+        if (storedMainWindow && !storedMainWindow.isDestroyed()) {
+          if (!storedMainWindow.isVisible()) storedMainWindow.show()
+          storedMainWindow.focus()
+        }
+      })
 
-  // 창이 닫히면 배열에서 제거
-  notificationWindow.on('closed', () => {
-    const index = notificationWindows.indexOf(notificationWindow)
-    if (index > -1) {
-      notificationWindows.splice(index, 1)
+      notification.show()
     }
-  })
-
-  // 배열에 추가
-  notificationWindows.push(notificationWindow)
+  }
 
   // 알람 보낸 스케줄로 기록
   notifiedSchedules.add(schedule.id)
@@ -512,7 +470,7 @@ function showScheduleNotification(schedule: { id: number; text: string; clientNa
 /**
  * 개별 스케줄에 대한 타이머 설정
  */
-function scheduleNotification(schedule: { id: number; text: string; dueDate?: string | Date; clientName?: string | null; completed: number }): void {
+function scheduleNotification(schedule: { id: number; text: string; dueDate?: string | Date; dueTime?: string | null; clientName?: string | null; completed: number }): void {
   // 기존 타이머가 있으면 제거
   const existingTimer = scheduleTimers.get(schedule.id)
   if (existingTimer) {
@@ -524,8 +482,25 @@ function scheduleNotification(schedule: { id: number; text: string; dueDate?: st
   if (schedule.completed || !schedule.dueDate) return
 
   const now = new Date()
-  const dueDate = new Date(schedule.dueDate)
-  const timeDiff = dueDate.getTime() - now.getTime()
+
+  // ISO 문자열에서 날짜 부분(YYYY-MM-DD)만 추출 후 로컬 시간으로 조합
+  const dueDateStr = typeof schedule.dueDate === 'string'
+    ? schedule.dueDate
+    : schedule.dueDate.toISOString()
+  const datePart = dueDateStr.substring(0, 10) // "2025-01-15"
+  const [year, month, day] = datePart.split('-').map(Number)
+
+  let hours = 0
+  let minutes = 0
+  if (schedule.dueTime) {
+    const parts = schedule.dueTime.split(':')
+    hours = Number(parts[0])
+    minutes = Number(parts[1])
+  }
+
+  // 로컬 시간 기준으로 알림 시각 생성
+  const notifyAt = new Date(year, month - 1, day, hours, minutes, 0, 0)
+  const timeDiff = notifyAt.getTime() - now.getTime()
 
   // 이미 지난 시간이면 리턴
   if (timeDiff < 0) return

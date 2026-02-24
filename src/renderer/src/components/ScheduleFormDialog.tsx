@@ -101,6 +101,21 @@ export function ScheduleFormDialog({
       return next;
     });
 
+  const setToday = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    setForm((prev) => ({ ...prev, dueDate: `${y}-${m}-${d}` }));
+  };
+
+  const setCurrentTime = () => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    setForm((prev) => ({ ...prev, dueTime: `${hh}:${mm}` }));
+  };
+
   const handleSave = () => {
     if (!form.text.trim()) return;
     onSave(form);
@@ -220,9 +235,18 @@ export function ScheduleFormDialog({
           {/* 5행: 마감일 + 시간 */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground">
-                마감일
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-muted-foreground">
+                  마감일
+                </label>
+                <button
+                  type="button"
+                  onClick={setToday}
+                  className="text-[10px] font-semibold text-primary hover:text-primary/70 transition-colors"
+                >
+                  [오늘]
+                </button>
+              </div>
               <Input
                 type="date"
                 value={form.dueDate}
@@ -231,9 +255,18 @@ export function ScheduleFormDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-muted-foreground">
-                시간
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-muted-foreground">
+                  시간
+                </label>
+                <button
+                  type="button"
+                  onClick={setCurrentTime}
+                  className="text-[10px] font-semibold text-primary hover:text-primary/70 transition-colors"
+                >
+                  [현재]
+                </button>
+              </div>
               <Input
                 type="time"
                 value={form.dueTime}
