@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Trash2,
@@ -13,6 +13,12 @@ import {
   ListOrdered,
   Undo2,
   Redo2,
+  Search,
+  X,
+  Table as TableIcon,
+  Rows,
+  Columns3,
+  Check,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -29,58 +35,102 @@ import { cn } from "../lib/utils";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import UnderlineExt from "@tiptap/extension-underline";
+import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import DOMPurify from "dompurify";
 
 interface Memo {
   id: number;
   title: string;
   content: string;
+  color?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-// 포스트잇 색상 팔레트
-const POST_IT_COLORS = [
+// 색상 팔레트 (Notion 스타일)
+const MEMO_COLORS = [
   {
+    id: "yellow",
+    label: "노랑",
+    swatch: "#fef3c7",
     bg: "bg-yellow-100 dark:bg-yellow-900/40",
     border: "border-yellow-200 dark:border-yellow-800/50",
     header: "bg-yellow-200/60 dark:bg-yellow-800/40",
     accent: "text-yellow-700 dark:text-yellow-300",
   },
   {
+    id: "pink",
+    label: "분홍",
+    swatch: "#fce7f3",
     bg: "bg-pink-100 dark:bg-pink-900/40",
     border: "border-pink-200 dark:border-pink-800/50",
     header: "bg-pink-200/60 dark:bg-pink-800/40",
     accent: "text-pink-700 dark:text-pink-300",
   },
   {
+    id: "blue",
+    label: "파랑",
+    swatch: "#dbeafe",
     bg: "bg-blue-100 dark:bg-blue-900/40",
     border: "border-blue-200 dark:border-blue-800/50",
     header: "bg-blue-200/60 dark:bg-blue-800/40",
     accent: "text-blue-700 dark:text-blue-300",
   },
   {
+    id: "green",
+    label: "초록",
+    swatch: "#dcfce7",
     bg: "bg-green-100 dark:bg-green-900/40",
     border: "border-green-200 dark:border-green-800/50",
     header: "bg-green-200/60 dark:bg-green-800/40",
     accent: "text-green-700 dark:text-green-300",
   },
   {
+    id: "purple",
+    label: "보라",
+    swatch: "#f3e8ff",
     bg: "bg-purple-100 dark:bg-purple-900/40",
     border: "border-purple-200 dark:border-purple-800/50",
     header: "bg-purple-200/60 dark:bg-purple-800/40",
     accent: "text-purple-700 dark:text-purple-300",
   },
   {
+    id: "orange",
+    label: "주황",
+    swatch: "#fed7aa",
     bg: "bg-orange-100 dark:bg-orange-900/40",
     border: "border-orange-200 dark:border-orange-800/50",
     header: "bg-orange-200/60 dark:bg-orange-800/40",
     accent: "text-orange-700 dark:text-orange-300",
   },
+  {
+    id: "gray",
+    label: "회색",
+    swatch: "#f3f4f6",
+    bg: "bg-gray-100 dark:bg-gray-800/40",
+    border: "border-gray-200 dark:border-gray-700/50",
+    header: "bg-gray-200/60 dark:bg-gray-700/40",
+    accent: "text-gray-700 dark:text-gray-300",
+  },
+  {
+    id: "red",
+    label: "빨강",
+    swatch: "#fee2e2",
+    bg: "bg-red-100 dark:bg-red-900/40",
+    border: "border-red-200 dark:border-red-800/50",
+    header: "bg-red-200/60 dark:bg-red-800/40",
+    accent: "text-red-700 dark:text-red-300",
+  },
 ];
 
-function getPostItColor(index: number) {
-  return POST_IT_COLORS[index % POST_IT_COLORS.length];
+function getMemoColor(colorId?: string | null, fallbackIndex?: number) {
+  if (colorId) {
+    const found = MEMO_COLORS.find((c) => c.id === colorId);
+    if (found) return found;
+  }
+  // 색상 미지정 시 인덱스 기반 순환
+  const idx = (fallbackIndex ?? 0) % MEMO_COLORS.length;
+  return MEMO_COLORS[idx];
 }
 
 function stripHtml(html: string): string {
@@ -99,9 +149,45 @@ function formatDate(iso: string): string {
   return `${y}.${m}.${day} ${h}:${min}`;
 }
 
+// 색상 선택 팔레트 컴포넌트
+function ColorPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span className="text-[10px] text-muted-foreground mr-0.5">배경색</span>
+      {MEMO_COLORS.map((color) => (
+        <button
+          key={color.id}
+          type="button"
+          title={color.label}
+          onClick={() => onChange(color.id)}
+          className={cn(
+            "relative h-5 w-5 rounded-full border-2 transition-transform hover:scale-110",
+            value === color.id
+              ? "border-foreground/60 scale-110"
+              : "border-transparent",
+          )}
+          style={{ backgroundColor: color.swatch }}
+        >
+          {value === color.id && (
+            <Check className="absolute inset-0 m-auto h-2.5 w-2.5 text-foreground/60" />
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // Tiptap 에디터 툴바
 function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   if (!editor) return null;
+
+  const isInTable = editor.isActive("table");
 
   const btnClass = (active: boolean) =>
     cn(
@@ -112,7 +198,8 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
     );
 
   return (
-    <div className="flex items-center gap-0.5 p-1.5 border-b border-border/40 bg-muted/20 rounded-t-xl">
+    <div className="flex items-center gap-0.5 p-1.5 border-b border-border/40 bg-muted/20 rounded-t-xl flex-wrap">
+      {/* 텍스트 서식 */}
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -144,6 +231,7 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
 
       <div className="w-px h-4 bg-border/50 mx-1" />
 
+      {/* 리스트 */}
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -161,6 +249,70 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
 
       <div className="w-px h-4 bg-border/50 mx-1" />
 
+      {/* 표 */}
+      {!isInTable ? (
+        <button
+          type="button"
+          title="표 삽입"
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+              .run()
+          }
+          className={btnClass(false)}
+        >
+          <TableIcon className="h-3.5 w-3.5" />
+        </button>
+      ) : (
+        <>
+          <button
+            type="button"
+            title="행 추가"
+            onClick={() => editor.chain().focus().addRowAfter().run()}
+            className={btnClass(false)}
+          >
+            <Rows className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            title="열 추가"
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+            className={btnClass(false)}
+          >
+            <Columns3 className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            title="행 삭제"
+            onClick={() => editor.chain().focus().deleteRow().run()}
+            className={cn(btnClass(false), "text-destructive/70 hover:text-destructive")}
+          >
+            <Rows className="h-3.5 w-3.5 line-through opacity-60" />
+          </button>
+          <button
+            type="button"
+            title="열 삭제"
+            onClick={() => editor.chain().focus().deleteColumn().run()}
+            className={cn(btnClass(false), "text-destructive/70 hover:text-destructive")}
+          >
+            <Columns3 className="h-3.5 w-3.5 opacity-60" />
+          </button>
+          <button
+            type="button"
+            title="표 삭제"
+            onClick={() => editor.chain().focus().deleteTable().run()}
+            className={cn(btnClass(false), "text-destructive hover:bg-destructive/10")}
+          >
+            <TableIcon className="h-3.5 w-3.5" />
+          </button>
+        </>
+      )}
+
+      <div className="w-px h-4 bg-border/50 mx-1" />
+
+      {/* 실행취소/재실행 */}
       <button
         type="button"
         onClick={() => editor.chain().focus().undo().run()}
@@ -181,7 +333,7 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   );
 }
 
-// 메모 에디터 다이얼로그 (생성 / 수정 / 읽기전용 공용)
+// 메모 에디터 다이얼로그
 type DialogMode = "create" | "edit" | "view";
 
 function MemoEditorDialog({
@@ -191,21 +343,31 @@ function MemoEditorDialog({
   onEditRequest,
   initialTitle,
   initialContent,
+  initialColor,
   mode,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave?: (title: string, content: string) => void;
+  onSave?: (title: string, content: string, color: string) => void;
   onEditRequest?: () => void;
   initialTitle?: string;
   initialContent?: string;
+  initialColor?: string;
   mode: DialogMode;
 }) {
   const [title, setTitle] = useState(initialTitle || "");
+  const [selectedColor, setSelectedColor] = useState(initialColor || "yellow");
   const readOnly = mode === "view";
 
   const editor = useEditor({
-    extensions: [StarterKit, UnderlineExt],
+    extensions: [
+      StarterKit,
+      UnderlineExt,
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
     content: initialContent || "",
     editable: !readOnly,
     immediatelyRender: false,
@@ -220,21 +382,24 @@ function MemoEditorDialog({
     },
   });
 
-  // 다이얼로그가 열릴 때 에디터 내용 초기화
   useEffect(() => {
     if (open && editor) {
       setTitle(initialTitle || "");
+      setSelectedColor(initialColor || "yellow");
       editor.commands.setContent(initialContent || "");
       editor.setEditable(!readOnly);
     }
-  }, [open, initialTitle, initialContent, editor, readOnly]);
+  }, [open, initialTitle, initialContent, initialColor, editor, readOnly]);
 
   const handleSave = () => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle || !onSave) return;
     const html = editor?.getHTML() || "";
-    const sanitized = DOMPurify.sanitize(html);
-    onSave(trimmedTitle, sanitized);
+    const sanitized = DOMPurify.sanitize(html, {
+      ADD_TAGS: ["table", "thead", "tbody", "tr", "th", "td", "colgroup", "col"],
+      ADD_ATTR: ["colspan", "rowspan", "style", "class"],
+    });
+    onSave(trimmedTitle, sanitized, selectedColor);
     onOpenChange(false);
   };
 
@@ -252,7 +417,7 @@ function MemoEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] rounded-2xl p-0 flex flex-col overflow-hidden">
+      <DialogContent className="sm:max-w-[640px] max-h-[85vh] rounded-2xl p-0 flex flex-col overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-0 shrink-0">
           <DialogTitle className="text-[15px]">{dialogTitle}</DialogTitle>
           {dialogDesc && (
@@ -268,15 +433,21 @@ function MemoEditorDialog({
               {title || "제목 없음"}
             </div>
           ) : (
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="메모 제목"
-              className="h-10 text-[13px] border-border/50 bg-muted/20 rounded-xl px-3.5 focus-visible:ring-1 focus-visible:ring-primary/30 shrink-0"
-            />
+            <>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="메모 제목"
+                className="h-10 text-[13px] border-border/50 bg-muted/20 rounded-xl px-3.5 focus-visible:ring-1 focus-visible:ring-primary/30 shrink-0"
+              />
+              {/* 배경색 선택 */}
+              <div className="px-0.5">
+                <ColorPicker value={selectedColor} onChange={setSelectedColor} />
+              </div>
+            </>
           )}
 
-          <div className="rounded-xl border border-border/50 overflow-hidden bg-background">
+          <div className="rounded-xl border border-border/50 overflow-hidden bg-background memo-editor-wrap">
             {!readOnly && editor && <EditorToolbar editor={editor} />}
             {editor && <EditorContent editor={editor} />}
           </div>
@@ -329,11 +500,22 @@ function MemoEditorDialog({
 export function Memo() {
   const [memos, setMemos] = useState<Memo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [viewingMemo, setViewingMemo] = useState<Memo | null>(null);
   const [editingMemo, setEditingMemo] = useState<Memo | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  const filteredMemos = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return memos;
+    return memos.filter(
+      (m) =>
+        m.title.toLowerCase().includes(q) ||
+        stripHtml(m.content).toLowerCase().includes(q),
+    );
+  }, [memos, searchQuery]);
 
   const fetchMemos = useCallback(async () => {
     try {
@@ -350,11 +532,12 @@ export function Memo() {
     fetchMemos();
   }, [fetchMemos]);
 
-  const handleCreate = async (title: string, content: string) => {
+  const handleCreate = async (title: string, content: string, color: string) => {
     try {
       const created = await window.electron.ipcRenderer.invoke("memos:create", {
         title,
         content,
+        color,
       });
       setMemos((prev) => [created, ...prev]);
     } catch (err) {
@@ -362,13 +545,13 @@ export function Memo() {
     }
   };
 
-  const handleUpdate = async (title: string, content: string) => {
+  const handleUpdate = async (title: string, content: string, color: string) => {
     if (!editingMemo) return;
     try {
       const updated = await window.electron.ipcRenderer.invoke(
         "memos:update",
         editingMemo.id,
-        { title, content },
+        { title, content, color },
       );
       setMemos((prev) => prev.map((m) => (m.id === editingMemo.id ? updated : m)));
       setEditingMemo(null);
@@ -407,9 +590,7 @@ export function Memo() {
     if (selectedIds.size !== 1) return;
     const id = Array.from(selectedIds)[0];
     const memo = memos.find((m) => m.id === id);
-    if (memo) {
-      setEditingMemo(memo);
-    }
+    if (memo) setEditingMemo(memo);
   };
 
   const handleCardClick = (memo: Memo) => {
@@ -426,7 +607,7 @@ export function Memo() {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
       {/* ── 상단 헤더 ── */}
-      <div className="flex-shrink-0 space-y-4 px-6 pt-2 pb-4">
+      <div className="flex-shrink-0 space-y-3 px-6 pt-2 pb-4">
         <div className="flex items-center justify-between min-h-9">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -435,13 +616,14 @@ export function Memo() {
             <div>
               <h2 className="text-[13px] font-bold leading-none">나의 메모</h2>
               <p className="text-[10px] text-muted-foreground mt-1">
-                총 {memos.length}개
+                {searchQuery.trim()
+                  ? `${filteredMemos.length}개 검색됨 / 전체 ${memos.length}개`
+                  : `총 ${memos.length}개`}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* 수정 버튼 - 1개 선택 시 활성 */}
             <Button
               variant="ghost"
               size="icon"
@@ -457,7 +639,6 @@ export function Memo() {
               <Pencil className="h-4 w-4" />
             </Button>
 
-            {/* 삭제 버튼 - 1개 이상 선택 시 활성 */}
             <Button
               variant="ghost"
               size="icon"
@@ -473,7 +654,6 @@ export function Memo() {
               <Trash2 className="h-4 w-4" />
             </Button>
 
-            {/* 추가 버튼 */}
             <Button
               size="icon"
               className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all"
@@ -483,9 +663,29 @@ export function Memo() {
             </Button>
           </div>
         </div>
+
+        {/* 검색 입력창 */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="제목 또는 내용으로 검색..."
+            className="h-8 pl-8 pr-8 text-[12px] border-border/40 bg-muted/20 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/30"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* ── 메모 그리드 (포스트잇) ── */}
+      {/* ── 메모 그리드 ── */}
       <div className="flex-1 overflow-y-auto px-6 pb-6 scrollbar-thin scrollbar-stable">
         {loading ? (
           <div className="h-full flex items-center justify-center">
@@ -503,10 +703,22 @@ export function Memo() {
               + 버튼을 눌러 새 메모를 추가하세요
             </p>
           </div>
+        ) : filteredMemos.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center py-12">
+            <div className="w-14 h-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-3">
+              <Search className="h-6 w-6 text-muted-foreground/30" />
+            </div>
+            <p className="text-[13px] text-muted-foreground/60 font-medium">
+              검색 결과가 없습니다
+            </p>
+            <p className="text-[11px] text-muted-foreground/40 mt-1">
+              다른 검색어를 입력해 보세요
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {memos.map((memo, index) => {
-              const color = getPostItColor(index);
+            {filteredMemos.map((memo, index) => {
+              const color = getMemoColor(memo.color, index);
               const isSelected = selectedIds.has(memo.id);
               const plainText = stripHtml(memo.content);
 
@@ -533,19 +745,9 @@ export function Memo() {
                     />
                   </div>
 
-                  {/* 포스트잇 헤더 (제목) */}
-                  <div
-                    className={cn(
-                      "px-3.5 py-2.5 rounded-t-[14px]",
-                      color.header,
-                    )}
-                  >
-                    <h3
-                      className={cn(
-                        "text-[12px] font-bold truncate pr-5",
-                        color.accent,
-                      )}
-                    >
+                  {/* 포스트잇 헤더 */}
+                  <div className={cn("px-3.5 py-2.5 rounded-t-[14px]", color.header)}>
+                    <h3 className={cn("text-[12px] font-bold truncate pr-5", color.accent)}>
                       {memo.title || "제목 없음"}
                     </h3>
                   </div>
@@ -580,7 +782,7 @@ export function Memo() {
         />
       )}
 
-      {/* ── 상세보기 다이얼로그 (읽기전용) ── */}
+      {/* ── 상세보기 다이얼로그 ── */}
       {viewingMemo && (
         <MemoEditorDialog
           open={!!viewingMemo}
@@ -589,6 +791,7 @@ export function Memo() {
           }}
           initialTitle={viewingMemo.title}
           initialContent={viewingMemo.content}
+          initialColor={viewingMemo.color}
           onEditRequest={handleViewToEdit}
           mode="view"
         />
@@ -604,6 +807,7 @@ export function Memo() {
           onSave={handleUpdate}
           initialTitle={editingMemo.title}
           initialContent={editingMemo.content}
+          initialColor={editingMemo.color}
           mode="edit"
         />
       )}

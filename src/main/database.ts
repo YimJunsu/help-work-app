@@ -28,6 +28,7 @@ export interface Memo {
   id: number
   title: string
   content: string
+  color?: string
   createdAt: string
   updatedAt: string
 }
@@ -331,6 +332,7 @@ export function initDatabase(): Database.Database {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL DEFAULT '',
       content TEXT NOT NULL,
+      color TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )
@@ -339,6 +341,13 @@ export function initDatabase(): Database.Database {
   // Add title column if it doesn't exist (for existing databases)
   try {
     memosDb.exec(`ALTER TABLE memos ADD COLUMN title TEXT NOT NULL DEFAULT ''`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  // Add color column if it doesn't exist (for existing databases)
+  try {
+    memosDb.exec(`ALTER TABLE memos ADD COLUMN color TEXT`)
   } catch (error) {
     // Column already exists, ignore error
   }
@@ -610,32 +619,32 @@ export function getMemoById(id: number): Memo | undefined {
   return stmt.get(id) as Memo | undefined
 }
 
-export function createMemo(memo: { title: string; content: string }): Memo {
+export function createMemo(memo: { title: string; content: string; color?: string }): Memo {
   if (!memosDb) throw new Error('Memos database not initialized')
 
   const now = new Date().toISOString()
 
   const stmt = memosDb.prepare(`
-    INSERT INTO memos (title, content, createdAt, updatedAt)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO memos (title, content, color, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?)
   `)
 
-  const result = stmt.run(memo.title, memo.content, now, now)
+  const result = stmt.run(memo.title, memo.content, memo.color || null, now, now)
   return getMemoById(Number(result.lastInsertRowid))!
 }
 
-export function updateMemo(id: number, updates: { title: string; content: string }): Memo {
+export function updateMemo(id: number, updates: { title: string; content: string; color?: string }): Memo {
   if (!memosDb) throw new Error('Memos database not initialized')
 
   const now = new Date().toISOString()
 
   const stmt = memosDb.prepare(`
     UPDATE memos
-    SET title = ?, content = ?, updatedAt = ?
+    SET title = ?, content = ?, color = ?, updatedAt = ?
     WHERE id = ?
   `)
 
-  stmt.run(updates.title, updates.content, now, id)
+  stmt.run(updates.title, updates.content, updates.color || null, now, id)
   return getMemoById(id)!
 }
 

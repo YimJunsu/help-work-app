@@ -20,6 +20,7 @@ import {
   CalendarCheck,
   ListChecks,
   Settings,
+  BookOpenText,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dashboard } from "../pages/Dashboard";
@@ -28,10 +29,11 @@ import { UniSupport, prefetchUniSupportData } from "../pages/UniSupport";
 import { Settings as SettingsPage } from "../pages/Settings";
 import { Memo } from "../pages/Memo";
 import { DutySchedule } from "../pages/DutySchedule";
+import { UniPedia } from "../pages/UniPedia";
 import { WorkBatteryIndicator } from "./WorkBatteryIndicator";
 import uniFightingLogo from "@resources/uni_fighting.png";
 
-type Page = "dashboard" | "todolist" | "schedule" | "unisupport" | "memo" | "setting";
+type Page = "dashboard" | "todolist" | "schedule" | "unisupport" | "memo" | "unipedia" | "setting";
 
 export function Layout() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
@@ -99,7 +101,7 @@ export function Layout() {
               <div className="text-left">
                 <p className="text-sm font-semibold leading-none">Help Work</p>
                 <p className="text-xs text-muted-foreground">
-                  당신의 업무 도우미
+                  유니포스트 업무 도우미
                 </p>
               </div>
             </button>
@@ -108,6 +110,15 @@ export function Layout() {
           <SidebarContent className="px-2">
             <SidebarGroup>
               <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={currentPage === "unisupport"}
+                    onClick={() => setCurrentPage("unisupport")}
+                  >
+                    <Headset />
+                    <span>UniSupport</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     isActive={currentPage === "todolist"}
@@ -128,20 +139,20 @@ export function Layout() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    isActive={currentPage === "unisupport"}
-                    onClick={() => setCurrentPage("unisupport")}
-                  >
-                    <Headset />
-                    <span>UniSupport</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
                     isActive={currentPage === "memo"}
                     onClick={() => setCurrentPage("memo")}
                   >
                     <NotebookTabs />
                     <span>Memo</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={currentPage === "unipedia"}
+                    onClick={() => setCurrentPage("unipedia")}
+                  >
+                    <BookOpenText />
+                    <span>유니백과</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -183,6 +194,7 @@ export function Layout() {
               {currentPage === "schedule" && "나의 스케줄 확인"}
               {currentPage === "unisupport" && "UniSupport 요청 내역"}
               {currentPage === "memo" && "메모장"}
+              {currentPage === "unipedia" && "유니백과"}
               {currentPage === "setting" && "설정"}
             </h1>
 
@@ -209,6 +221,7 @@ export function Layout() {
             {currentPage === "schedule" && <DutySchedule />}
             {currentPage === "unisupport" && <UniSupport />}
             {currentPage === "memo" && <Memo />}
+            {currentPage === "unipedia" && <UniPedia />}
             {currentPage === "setting" && <SettingsPage />}
           </main>
         </SidebarInset>

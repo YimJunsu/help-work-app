@@ -16,7 +16,7 @@ import {
 } from "../components/ScheduleFormDialog";
 import { getCachedUniSupportData } from "./UniSupport";
 
-type Page = "dashboard" | "todolist" | "schedule" | "unisupport" | "memo" | "setting";
+type Page = "dashboard" | "todolist" | "schedule" | "unisupport" | "memo" | "unipedia" | "setting";
 
 interface Schedule {
   id: number;

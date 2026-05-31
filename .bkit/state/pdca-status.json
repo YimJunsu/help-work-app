@@ -1,0 +1,187 @@
+{
+  "version": "2.0",
+  "lastUpdated": "2026-05-31T07:59:00.065Z",
+  "activeFeatures": [
+    "main",
+    "renderer"
+  ],
+  "primaryFeature": "main",
+  "features": {
+    "main": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-05-31T06:44:38.355Z",
+        "lastUpdated": "2026-05-31T07:07:39.820Z"
+      },
+      "lastFile": "D:\\project\\help-work-app\\src\\main\\ipcHandlers.ts"
+    },
+    "renderer": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-05-31T06:45:42.941Z",
+        "lastUpdated": "2026-05-31T07:59:00.065Z"
+      },
+      "lastFile": "D:\\project\\help-work-app\\src\\renderer\\src\\pages\\UniPedia.tsx"
+    }
+  },
+  "pipeline": {
+    "currentPhase": 1,
+    "level": "Dynamic",
+    "phaseHistory": []
+  },
+  "session": {
+    "startedAt": "2026-05-31T06:26:31.807Z",
+    "onboardingCompleted": false,
+    "lastActivity": "2026-05-31T07:59:00.065Z"
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-31T06:44:38.355Z",
+      "feature": "main",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T06:45:42.941Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T06:46:00.341Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T06:46:31.392Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T06:47:00.070Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:06:48.642Z",
+      "feature": "main",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:07:05.248Z",
+      "feature": "main",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:07:23.678Z",
+      "feature": "main",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:07:39.820Z",
+      "feature": "main",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:09:26.665Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:11:31.606Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:12:25.844Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:12:43.984Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:46:53.027Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:47:01.302Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:47:12.364Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:47:22.606Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:47:31.728Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:47:39.087Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:47:52.567Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:48:14.855Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:57:32.051Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-31T07:59:00.065Z",
+      "feature": "renderer",
+      "phase": "do",
+      "action": "updated"
+    }
+  ]
+}

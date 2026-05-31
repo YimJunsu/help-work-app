@@ -56,8 +56,9 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
+    minWidth: 750,
+    minHeight: 550,
     show: false,
-    resizable: false,
     autoHideMenuBar: true,
     icon: icon,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f172a' : '#ffffff',

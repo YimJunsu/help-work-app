@@ -186,14 +186,16 @@ function registerMemoHandlers(): void {
   ipcMain.handle('memos:create', (_event, memo) => {
     return createMemo({
       title: memo.title,
-      content: memo.content
+      content: memo.content,
+      color: memo.color
     })
   })
 
   ipcMain.handle('memos:update', (_event, id, updates) => {
     return updateMemo(id, {
       title: updates.title,
-      content: updates.content
+      content: updates.content,
+      color: updates.color
     })
   })
 

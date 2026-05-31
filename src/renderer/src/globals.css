@@ -29,6 +29,41 @@
   scrollbar-gutter: stable;
 }
 
+/* Tiptap Table Styles */
+.memo-editor-wrap .ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0.75em 0;
+  overflow: hidden;
+  font-size: 0.8125rem;
+}
+.memo-editor-wrap .ProseMirror td,
+.memo-editor-wrap .ProseMirror th {
+  min-width: 2em;
+  border: 1px solid hsl(var(--border));
+  padding: 4px 8px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+.memo-editor-wrap .ProseMirror th {
+  background-color: hsl(var(--muted) / 0.6);
+  font-weight: 600;
+  text-align: left;
+}
+.memo-editor-wrap .ProseMirror .selectedCell::after {
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: hsl(var(--primary) / 0.1);
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
 /* line-clamp utility */
 .line-clamp-5 {
   display: -webkit-box;
