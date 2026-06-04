@@ -86,6 +86,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       shell.openExternal(url)
     }
   })
+
+  // UniPedia IPC handlers
+  registerUnipediaHandlers()
 }
 
 /**
@@ -416,6 +419,45 @@ function registerAutoUpdaterHandlers(mainWindow: BrowserWindow): void {
       })
     }, 5000)
   }
+}
+
+/**
+ * UniPedia 관련 IPC 핸들러
+ * Main 프로세스에서 백엔드 REST API를 호출하고 렌더러에 결과를 전달합니다.
+ */
+function registerUnipediaHandlers(): void {
+  const BASE_URL = 'http://192.168.10.122:3001/api'
+
+  ipcMain.handle('unipedia:chat', async (_event, query: string) => {
+    try {
+      const res = await fetch(`${BASE_URL}/unipedia/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+        signal: AbortSignal.timeout(60_000),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const status = res.status
+        if (status === 429) {
+          return { success: false, error: 'RATE_LIMITED' }
+        }
+        if (status === 503) {
+          return { success: false, error: 'SERVICE_UNAVAILABLE' }
+        }
+        return { success: false, error: 'SERVER_ERROR', message: (body as { error?: string }).error ?? `HTTP ${status}` }
+      }
+
+      return await res.json()
+    } catch (err: unknown) {
+      const e = err as { name?: string; code?: string }
+      if (e.name === 'TimeoutError' || e.name === 'AbortError' || e.code === 'ECONNREFUSED') {
+        return { success: false, error: 'CONNECTION_FAILED' }
+      }
+      return { success: false, error: 'UNKNOWN' }
+    }
+  })
 }
 
 /**
