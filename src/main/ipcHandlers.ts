@@ -108,11 +108,13 @@ function registerScheduleHandlers(): void {
       dueTime: schedule.dueTime,
       clientName: schedule.clientName,
       requestNumber: schedule.requestNumber,
-      webData: schedule.webData
+      webData: schedule.webData,
+      repeatType: schedule.repeatType,
+      repeatValue: schedule.repeatValue
     })
 
-    // 새로 생성된 스케줄에 대한 알람 타이머 설정
-    if (newSchedule && newSchedule.dueDate) {
+    // 새로 생성된 스케줄에 대한 알람 타이머 설정 (마감일 일정 또는 매주/매월 반복 일정)
+    if (newSchedule) {
       scheduleNotification(newSchedule)
     }
 
@@ -128,6 +130,8 @@ function registerScheduleHandlers(): void {
     clientName?: string
     requestNumber?: string
     webData?: boolean
+    repeatType?: string
+    repeatValue?: number | null
   }) => {
     const updatedSchedule = updateSchedule(id, {
       text: updates.text,
@@ -139,7 +143,9 @@ function registerScheduleHandlers(): void {
       dueTime: updates.dueTime,
       clientName: updates.clientName,
       requestNumber: updates.requestNumber,
-      webData: updates.webData
+      webData: updates.webData,
+      repeatType: updates.repeatType,
+      repeatValue: updates.repeatValue
     })
 
     // 수정된 스케줄에 대한 알람 타이머 재설정
@@ -512,9 +518,83 @@ function showScheduleNotification(schedule: { id: number; text: string; clientNa
 }
 
 /**
- * 개별 스케줄에 대한 타이머 설정
+ * dueTime("HH:mm") 문자열을 시/분으로 분해
  */
-function scheduleNotification(schedule: { id: number; text: string; dueDate?: string | Date; dueTime?: string | null; clientName?: string | null; completed: number }): void {
+function parseDueTime(dueTime?: string | null): { hours: number; minutes: number } {
+  let hours = 0
+  let minutes = 0
+  if (dueTime) {
+    const parts = dueTime.split(':')
+    hours = Number(parts[0])
+    minutes = Number(parts[1])
+  }
+  return { hours, minutes }
+}
+
+/**
+ * 매주/매월 반복 일정의 다음 알림 시각 계산
+ * - weekly: repeatValue = 요일 (0:일 ~ 6:토)
+ * - monthly: repeatValue = 일자 (1~31, 해당 월에 없는 날짜면 말일로 보정)
+ */
+function getNextRepeatOccurrence(
+  repeatType: string,
+  repeatValue: number,
+  dueTime: string | null | undefined,
+  from: Date,
+): Date | null {
+  const { hours, minutes } = parseDueTime(dueTime)
+
+  if (repeatType === 'weekly') {
+    const candidate = new Date(from.getFullYear(), from.getMonth(), from.getDate(), hours, minutes, 0, 0)
+    let diff = (repeatValue - candidate.getDay() + 7) % 7
+    if (diff === 0 && candidate.getTime() <= from.getTime()) diff = 7
+    candidate.setDate(candidate.getDate() + diff)
+    return candidate
+  }
+
+  if (repeatType === 'monthly') {
+    const buildDate = (year: number, month: number): Date => {
+      // 해당 월의 마지막 날짜로 보정 (ex. 2월 30일 → 2월 28/29일)
+      const lastDay = new Date(year, month + 1, 0).getDate()
+      const day = Math.min(repeatValue, lastDay)
+      return new Date(year, month, day, hours, minutes, 0, 0)
+    }
+
+    let year = from.getFullYear()
+    let month = from.getMonth()
+    let candidate = buildDate(year, month)
+
+    if (candidate.getTime() <= from.getTime()) {
+      month += 1
+      if (month > 11) {
+        month = 0
+        year += 1
+      }
+      candidate = buildDate(year, month)
+    }
+
+    return candidate
+  }
+
+  return null
+}
+
+/**
+ * 개별 스케줄에 대한 타이머 설정
+ * - 일반 일정: dueDate + dueTime 기준 1회성 알림
+ * - 반복 일정(매주/매월): repeatType + repeatValue + dueTime 기준으로 다음 알림 시각 계산 후,
+ *   알림 표시 시 다음 회차를 다시 계산해 재설정 (영구 반복)
+ */
+function scheduleNotification(schedule: {
+  id: number
+  text: string
+  dueDate?: string | Date | null
+  dueTime?: string | null
+  clientName?: string | null
+  completed: number
+  repeatType?: string
+  repeatValue?: number | null
+}): void {
   // 기존 타이머가 있으면 제거
   const existingTimer = scheduleTimers.get(schedule.id)
   if (existingTimer) {
@@ -522,31 +602,37 @@ function scheduleNotification(schedule: { id: number; text: string; dueDate?: st
     scheduleTimers.delete(schedule.id)
   }
 
-  // 완료되었거나 날짜가 없으면 리턴
-  if (schedule.completed || !schedule.dueDate) return
+  // 완료된 스케줄은 알림을 설정하지 않음
+  if (schedule.completed) return
 
   const now = new Date()
+  const isRepeating = !!schedule.repeatType && schedule.repeatType !== 'none'
 
-  // ISO 문자열에서 날짜 부분(YYYY-MM-DD)만 추출 후 로컬 시간으로 조합
-  const dueDateStr = typeof schedule.dueDate === 'string'
-    ? schedule.dueDate
-    : schedule.dueDate.toISOString()
-  const datePart = dueDateStr.substring(0, 10) // "2025-01-15"
-  const [year, month, day] = datePart.split('-').map(Number)
+  let notifyAt: Date | null = null
 
-  let hours = 0
-  let minutes = 0
-  if (schedule.dueTime) {
-    const parts = schedule.dueTime.split(':')
-    hours = Number(parts[0])
-    minutes = Number(parts[1])
+  if (isRepeating) {
+    if (schedule.repeatValue === null || schedule.repeatValue === undefined) return
+    notifyAt = getNextRepeatOccurrence(schedule.repeatType!, schedule.repeatValue, schedule.dueTime, now)
+  } else {
+    if (!schedule.dueDate) return
+
+    // ISO 문자열에서 날짜 부분(YYYY-MM-DD)만 추출 후 로컬 시간으로 조합
+    const dueDateStr = typeof schedule.dueDate === 'string'
+      ? schedule.dueDate
+      : schedule.dueDate.toISOString()
+    const datePart = dueDateStr.substring(0, 10) // "2025-01-15"
+    const [year, month, day] = datePart.split('-').map(Number)
+    const { hours, minutes } = parseDueTime(schedule.dueTime)
+
+    // 로컬 시간 기준으로 알림 시각 생성
+    notifyAt = new Date(year, month - 1, day, hours, minutes, 0, 0)
   }
 
-  // 로컬 시간 기준으로 알림 시각 생성
-  const notifyAt = new Date(year, month - 1, day, hours, minutes, 0, 0)
+  if (!notifyAt) return
+
   const timeDiff = notifyAt.getTime() - now.getTime()
 
-  // 이미 지난 시간이면 리턴
+  // 이미 지난 시간이면 리턴 (반복 일정은 항상 미래 시각만 계산되므로 해당 없음)
   if (timeDiff < 0) return
 
   // 최대 타이머 시간 제한 (약 24.8일)
@@ -557,6 +643,11 @@ function scheduleNotification(schedule: { id: number; text: string; dueDate?: st
     const timer = setTimeout(() => {
       showScheduleNotification(schedule)
       scheduleTimers.delete(schedule.id)
+
+      // 반복 일정이면 다음 회차 알림을 다시 계산해 설정
+      if (isRepeating) {
+        scheduleNotification(schedule)
+      }
     }, timeDiff)
 
     scheduleTimers.set(schedule.id, timer)

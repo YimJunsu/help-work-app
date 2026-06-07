@@ -20,6 +20,8 @@ export interface Schedule {
   clientName?: string
   requestNumber?: string // 접수번호
   webData?: boolean // 웹데이터 유무
+  repeatType?: string // 반복 주기: 'none' | 'weekly' | 'monthly'
+  repeatValue?: number | null // 반복 기준값: weekly=요일(0:일~6:토), monthly=일자(1~31)
   createdAt: string
   updatedAt: string
 }
@@ -290,6 +292,8 @@ export function initDatabase(): Database.Database {
       clientName TEXT,
       requestNumber TEXT,
       webData INTEGER DEFAULT 0,
+      repeatType TEXT DEFAULT 'none',
+      repeatValue INTEGER,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     )
@@ -319,6 +323,20 @@ export function initDatabase(): Database.Database {
   // Add dueTime column if it doesn't exist (for existing databases)
   try {
     schedulesDb.exec(`ALTER TABLE schedules ADD COLUMN dueTime TEXT`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  // Add repeatType column if it doesn't exist (for existing databases)
+  try {
+    schedulesDb.exec(`ALTER TABLE schedules ADD COLUMN repeatType TEXT DEFAULT 'none'`)
+  } catch (error) {
+    // Column already exists, ignore error
+  }
+
+  // Add repeatValue column if it doesn't exist (for existing databases)
+  try {
+    schedulesDb.exec(`ALTER TABLE schedules ADD COLUMN repeatValue INTEGER`)
   } catch (error) {
     // Column already exists, ignore error
   }
@@ -498,14 +516,16 @@ export function createSchedule(schedule: {
   clientName?: string
   requestNumber?: string
   webData?: boolean
+  repeatType?: string
+  repeatValue?: number | null
 }): Schedule {
   if (!schedulesDb) throw new Error('Schedules database not initialized')
 
   const now = new Date().toISOString()
 
   const stmt = schedulesDb.prepare(`
-    INSERT INTO schedules (text, completed, category, dueDate, dueTime, clientName, requestNumber, webData, createdAt, updatedAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO schedules (text, completed, category, dueDate, dueTime, clientName, requestNumber, webData, repeatType, repeatValue, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   const result = stmt.run(
@@ -517,6 +537,8 @@ export function createSchedule(schedule: {
     schedule.clientName || null,
     schedule.requestNumber || null,
     schedule.webData ? 1 : 0,
+    schedule.repeatType || 'none',
+    schedule.repeatValue ?? null,
     now,
     now
   )
@@ -533,6 +555,8 @@ export function updateSchedule(id: number, updates: {
   clientName?: string
   requestNumber?: string
   webData?: boolean
+  repeatType?: string
+  repeatValue?: number | null
 }): Schedule {
   if (!schedulesDb) throw new Error('Schedules database not initialized')
 
@@ -572,6 +596,14 @@ export function updateSchedule(id: number, updates: {
   if (updates.webData !== undefined) {
     fields.push('webData = ?')
     values.push(updates.webData ? 1 : 0)
+  }
+  if (updates.repeatType !== undefined) {
+    fields.push('repeatType = ?')
+    values.push(updates.repeatType || 'none')
+  }
+  if (updates.repeatValue !== undefined) {
+    fields.push('repeatValue = ?')
+    values.push(updates.repeatValue ?? null)
   }
 
   fields.push('updatedAt = ?')

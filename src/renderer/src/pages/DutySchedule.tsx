@@ -9,14 +9,26 @@ import {
   CheckCircle2,
   Circle,
   ListFilter,
+  Repeat,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "../components/ui/alert-dialog";
 import { cn } from "../lib/utils";
 import {
   ScheduleFormDialog,
   getCategoryLabel,
   getCategoryStyle,
+  getRepeatLabel,
   type ScheduleFormData,
 } from "../components/ScheduleFormDialog";
 
@@ -30,6 +42,8 @@ interface Schedule {
   clientName?: string;
   requestNumber?: string;
   webData?: boolean;
+  repeatType?: string;
+  repeatValue?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -82,6 +96,18 @@ function getDdayColor(dday: number | null): {
     dot: "bg-green-500",
     animate: false,
   };
+}
+
+/** 주간/월간 반복 일정 여부 */
+function isRepeating(schedule: Schedule): boolean {
+  return !!schedule.repeatType && schedule.repeatType !== "none";
+}
+
+/** 정렬 우선순위: 일반(D-day) > 매주 반복 > 매월 반복 (낮을수록 위) */
+function getRepeatOrder(schedule: Schedule): number {
+  if (schedule.repeatType === "monthly") return 2;
+  if (schedule.repeatType === "weekly") return 1;
+  return 0;
 }
 
 function formatDate(iso?: string): string {
@@ -140,6 +166,11 @@ export function DutySchedule() {
           clientName: data.clientName || null,
           requestNumber: data.requestNumber || null,
           webData: data.webData,
+          repeatType: data.repeatType,
+          repeatValue:
+            data.repeatType !== "none" && data.repeatValue !== ""
+              ? Number(data.repeatValue)
+              : null,
         },
       );
       setSchedules((prev) => [created, ...prev]);
@@ -162,6 +193,11 @@ export function DutySchedule() {
           clientName: data.clientName || null,
           requestNumber: data.requestNumber || null,
           webData: data.webData,
+          repeatType: data.repeatType,
+          repeatValue:
+            data.repeatType !== "none" && data.repeatValue !== ""
+              ? Number(data.repeatValue)
+              : null,
         },
       );
       setSchedules((prev) =>
@@ -210,6 +246,10 @@ export function DutySchedule() {
       .sort((a, b) => {
         // 미완료 우선
         if (a.completed !== b.completed) return a.completed - b.completed;
+        // D-day(일반) > 매주 반복 > 매월 반복 순으로 정렬
+        const aOrder = getRepeatOrder(a);
+        const bOrder = getRepeatOrder(b);
+        if (aOrder !== bOrder) return aOrder - bOrder;
         // 마감일 가까운 순
         if (a.dueDate && b.dueDate)
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
@@ -221,17 +261,29 @@ export function DutySchedule() {
 
   const activeCount = schedules.filter((s) => !s.completed).length;
 
-  const editFormData: ScheduleFormData | undefined = editingSchedule
-    ? {
-        text: editingSchedule.text,
-        category: editingSchedule.category || "development",
-        dueDate: toInputDate(editingSchedule.dueDate),
-        dueTime: editingSchedule.dueTime || "",
-        clientName: editingSchedule.clientName || "",
-        requestNumber: editingSchedule.requestNumber || "",
-        webData: !!editingSchedule.webData,
-      }
-    : undefined;
+  // editingSchedule이 바뀔 때만 새로 계산 (불필요한 재계산으로 인한
+  // ScheduleFormDialog의 form 초기화 재실행 및 입력값 초기화 방지)
+  const editFormData: ScheduleFormData | undefined = useMemo(
+    () =>
+      editingSchedule
+        ? {
+            text: editingSchedule.text,
+            category: editingSchedule.category || "development",
+            dueDate: toInputDate(editingSchedule.dueDate),
+            dueTime: editingSchedule.dueTime || "",
+            clientName: editingSchedule.clientName || "",
+            requestNumber: editingSchedule.requestNumber || "",
+            webData: !!editingSchedule.webData,
+            repeatType: editingSchedule.repeatType || "none",
+            repeatValue:
+              editingSchedule.repeatValue !== null &&
+              editingSchedule.repeatValue !== undefined
+                ? String(editingSchedule.repeatValue)
+                : "",
+          }
+        : undefined,
+    [editingSchedule],
+  );
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
@@ -300,8 +352,14 @@ export function DutySchedule() {
           </div>
         ) : (
           filtered.map((schedule) => {
-            const dday = schedule.completed ? null : getDday(schedule.dueDate);
+            const repeating = isRepeating(schedule);
+            const dday =
+              schedule.completed || repeating ? null : getDday(schedule.dueDate);
             const ddayStyle = getDdayColor(dday);
+            const repeatLabel = getRepeatLabel(
+              schedule.repeatType,
+              schedule.repeatValue,
+            );
 
             return (
               <div
@@ -423,7 +481,13 @@ export function DutySchedule() {
 
                   {/* D-day 배지 / 삭제 버튼 영역 */}
                   <div className="shrink-0 flex items-center">
-                    {dday !== null ? (
+                    {repeating && !schedule.completed ? (
+                      /* 반복 일정 배지 */
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800/50">
+                        <Repeat className="h-3 w-3" />
+                        {repeatLabel}
+                      </div>
+                    ) : dday !== null ? (
                       /* D-day 배지 (미완료 + 마감일 있을 때) */
                       <div
                         className={cn(
@@ -451,41 +515,16 @@ export function DutySchedule() {
                         {getDdayText(dday)}
                       </div>
                     ) : schedule.completed ? (
-                      /* 완료 상태 → 삭제 버튼 / 인라인 확인 */
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5"
+                      /* 완료 상태 → 삭제 버튼 (확인은 모달 다이얼로그로 처리) */
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingId(schedule.id);
+                        }}
+                        className="text-[10px] bg-destructive text-white hover:bg-destructive/90 transition-colors px-2 py-1 rounded-lg border border-destructive"
                       >
-                        {deletingId === schedule.id ? (
-                          <>
-                            <span className="text-[10px] text-destructive font-medium">
-                              삭제할까요?
-                            </span>
-                            <button
-                              onClick={() => handleDelete(schedule.id)}
-                              className="text-[10px] font-bold text-destructive hover:underline"
-                            >
-                              확인
-                            </button>
-                            <span className="text-muted-foreground/30 text-[10px]">
-                              ·
-                            </span>
-                            <button
-                              onClick={() => setDeletingId(null)}
-                              className="text-[10px] text-muted-foreground/60 hover:text-foreground"
-                            >
-                              취소
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => setDeletingId(schedule.id)}
-                            className="text-[10px] bg-destructive text-white hover:bg-destructive/90 transition-colors px-2 py-1 rounded-lg border border-destructive"
-                          >
-                            삭제
-                          </button>
-                        )}
-                      </div>
+                        삭제
+                      </button>
                     ) : null}
                   </div>
                 </div>
@@ -525,6 +564,38 @@ export function DutySchedule() {
           mode="edit"
         />
       )}
+
+      {/* ── 삭제 확인 다이얼로그 ── */}
+      <AlertDialog
+        open={deletingId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingId(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-[360px] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[15px]">
+              스케줄을 삭제할까요?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[12px]">
+              삭제한 스케줄은 복구할 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl text-[12px] h-9">
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingId !== null) handleDelete(deletingId);
+              }}
+              className="rounded-xl text-[12px] h-9 bg-destructive text-white hover:bg-destructive/90"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
